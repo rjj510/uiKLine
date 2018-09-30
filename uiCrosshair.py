@@ -5,6 +5,7 @@ import pyqtgraph as pg
 import datetime as dt          
 import numpy as np
 import traceback
+import pandas as pd
 
 #from pyqtgraph.Qt import QtGui, QtCore
 from qtpy import QtGui, QtCore
@@ -147,16 +148,22 @@ class Crosshair(QtCore.QObject):
             dateText     = dt.datetime.strftime(tickDatetime,'%Y-%m-%d')
             timeText     = dt.datetime.strftime(tickDatetime,'%H:%M:%S')
         else:
+            '''
             datetimeText = ""
             dateText     = ""
             timeText     = ""
+            '''
+            datetimeText = dt.datetime.strftime(pd.to_datetime(pd.to_datetime(tickDatetime)),'%Y-%m-%d %H:%M:%S')
+            dateText     = dt.datetime.strftime(pd.to_datetime(pd.to_datetime(tickDatetime)),'%Y-%m-%d')
+            timeText     = dt.datetime.strftime(pd.to_datetime(pd.to_datetime(tickDatetime)),'%H:%M:%S')            
+
 
         # 显示所有的主图技术指标
         html = u'<div style="text-align: right">'
         for sig in self.master.sigData:
             val = self.master.sigData[sig][xAxis]
             col = self.master.sigColor[sig]
-            html+= u'<span style="color: %s;  font-size: 18px;">&nbsp;&nbsp;%s：%.2f</span>' %(col,sig,val)
+            html+= u'<span style="color: %s;  font-size: 12px;">&nbsp;&nbsp;%s：%.2f</span>' %(col,sig,val)
         html+=u'</div>' 
         self.__textSig.setHtml(html)
 
@@ -165,7 +172,7 @@ class Crosshair(QtCore.QObject):
         for sig in self.master.subSigData:
             val = self.master.subSigData[sig][xAxis]
             col = self.master.subSigColor[sig]
-            html+= u'<span style="color: %s;  font-size: 18px;">&nbsp;&nbsp;%s：%.2f</span>' %(col,sig,val)
+            html+= u'<span style="color: %s;  font-size: 12px;">&nbsp;&nbsp;%s：%.2f</span>' %(col,sig,val)
         html+=u'</div>' 
         self.__textSubSig.setHtml(html)
 
@@ -178,31 +185,31 @@ class Crosshair(QtCore.QObject):
             
         self.__textInfo.setHtml(
                             u'<div style="text-align: center; background-color:#000">\
-                                <span style="color: white;  font-size: 16px;">日期</span><br>\
-                                <span style="color: yellow; font-size: 16px;">%s</span><br>\
-                                <span style="color: white;  font-size: 16px;">时间</span><br>\
-                                <span style="color: yellow; font-size: 16px;">%s</span><br>\
-                                <span style="color: white;  font-size: 16px;">价格</span><br>\
-                                <span style="color: %s;     font-size: 16px;">(开) %.3f</span><br>\
-                                <span style="color: %s;     font-size: 16px;">(高) %.3f</span><br>\
-                                <span style="color: %s;     font-size: 16px;">(低) %.3f</span><br>\
-                                <span style="color: %s;     font-size: 16px;">(收) %.3f</span><br>\
-                                <span style="color: white;  font-size: 16px;">成交量</span><br>\
-                                <span style="color: yellow; font-size: 16px;">(量) %d</span><br>\
-                                <span style="color: white;  font-size: 16px;">成交价</span><br>\
-                                <span style="color: yellow; font-size: 16px;">(价) %.3f</span><br>\
+                                <span style="color: white;  font-size: 12px;">日期</span><br>\
+                                <span style="color: yellow; font-size: 12px;">%s</span><br>\
+                                <span style="color: white;  font-size: 12px;">时间</span><br>\
+                                <span style="color: yellow; font-size: 12px;">%s</span><br>\
+                                <span style="color: white;  font-size: 12px;">价格</span><br>\
+                                <span style="color: %s;     font-size: 12px;">(开) %d</span><br>\
+                                <span style="color: %s;     font-size: 12px;">(高) %d</span><br>\
+                                <span style="color: %s;     font-size: 12px;">(低) %d</span><br>\
+                                <span style="color: %s;     font-size: 12px;">(收) %d</span><br>\
+                                <span style="color: white;  font-size: 12px;">成交量</span><br>\
+                                <span style="color: yellow; font-size: 12px;">(量) %d</span><br>\
+                                <span style="color: white;  font-size: 12px;">成交价</span><br>\
+                                <span style="color: yellow; font-size: 12px;">(价) %d</span><br>\
                             </div>'\
                                 % (dateText,timeText,cOpen,openPrice,cHigh,highPrice,\
                                     cLow,lowPrice,cClose,closePrice,volume,tradePrice))             
         self.__textDate.setHtml(
                             '<div style="text-align: center">\
-                                <span style="color: yellow; font-size: 18px;">%s</span>\
+                                <span style="color: yellow; font-size: 12px;">%s</span>\
                             </div>'\
-                                % (datetimeText))   
+                                % (dateText))   
 
         self.__textVolume.setHtml(
                             '<div style="text-align: right">\
-                                <span style="color: white; font-size: 18px;">VOL : %.3f</span>\
+                                <span style="color: white; font-size: 12px;">VOL : %d</span>\
                             </div>'\
                                 % (volume))   
         # 坐标轴宽度
@@ -219,8 +226,8 @@ class Crosshair(QtCore.QObject):
             if self.showHLine[i]:
                 self.textPrices[i].setHtml(
                         '<div style="text-align: right">\
-                             <span style="color: yellow; font-size: 18px;">\
-                               %0.3f\
+                             <span style="color: yellow; font-size: 12px;">\
+                               %d\
                              </span>\
                          </div>'\
                         % (yAxis if i==0 else self.yAxises[i]))   

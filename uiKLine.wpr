@@ -4,6 +4,7 @@
 # Wing IDE project file                                          #
 ##################################################################
 [project attributes]
+proj.debug-sub-processes = True
 proj.directory-list = [{'dirloc': loc('.'),
                         'excludes': (),
                         'filter': u'*',
@@ -11,4 +12,4 @@ proj.directory-list = [{'dirloc': loc('.'),
                         'recursive': True,
                         'watch_for_changes': True}]
 proj.file-type = 'shared'
-proj.main-file = loc('uiKLineTool.py')
+proj.main-file = loc('uiKLine.py')

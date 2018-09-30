@@ -56,8 +56,8 @@ class uiKLineTool(uiBasicIO):
     #-----------------------------------------------
     def loadData(self,data):
         """加载数据"""
-        self.signals = data['deal']
-        self.signalsOpen = data['dealOpen']
+        #self.signals = data['deal']
+        #self.signalsOpen = data['dealOpen']
         kTool = self.canvas
         for sig in kTool.sigPlots:
             kTool.pwKL.removeItem(kTool.sigPlots[sig])
@@ -72,13 +72,13 @@ class uiKLineTool(uiBasicIO):
         self.pdBars = data[['open','close','low','high','volume','openInterest']]
         self.canvas.loadData(self.pdBars)
         self.canvas.updateSig(self.signals)
-        barinfo = ['datetime','open','close','low','high','volume','openInterest','deal','dealOpen']
+        barinfo = ['datetime','open','close','low','high','volume','openInterest']#,'deal','dealOpen']
         allState = [k for k in data if not k in barinfo]
         self.stateData = data[allState].to_records()
         self.editDict['signalName'].clear()
         self.editDict['signalName'].addItems(allState) 
-        print u'数据准备完成！'
-
+        print u'数据准备完成！'        
+        kTool.refreshAll()
     #----------------------------------------------------------------------
     def initUi(self):
         """初始化界面"""

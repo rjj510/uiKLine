@@ -73,6 +73,12 @@ class KeyWraper(QWidget):
     #重载方法wheelEvent(self,event),即滚轮事件方法
     #----------------------------------------------------------------------
     def wheelEvent(self, event):
+        if event.angleDelta().y() > 0 :
+            self.onUp()
+        else:
+            self.onDown()
+            pass
+        
         return
 
     #重载方法paintEvent(self,event),即拖动事件方法
@@ -186,7 +192,7 @@ class MyStringAxis(pg.AxisItem):
             vs = v * scale
             if vs in self.x_values:
                 vstr = self.x_strings[np.abs(self.x_values-vs).argmin()]
-                vstr = vstr.strftime('%Y-%m-%d %H:%M:%S')
+                vstr = vstr.strftime('%Y-%m-%d')
             else:
                 vstr = ""
             strings.append(vstr)
@@ -778,11 +784,6 @@ class KLineWidget(KeyWraper):
         # 绑定数据，更新横坐标映射，更新Y轴自适应函数，更新十字光标映射
         datas['time_int'] = np.array(range(len(datas.index)))
         
-        pd.set_option('display.max_rows',None)
-        pd.set_option('display.max_columns',200)
-        pd.set_option('display.width',1000)
-        
-    
         self.datas = datas[['open','close','low','high','volume','openInterest']].to_records()
         self.axisTime.xdict={}
         xdict = dict(enumerate(datas.index.tolist()))
@@ -831,6 +832,6 @@ if __name__ == '__main__':
     ui = KLineWidget()
     ui.show()
     ui.KLtitle.setText('rb1701',size='20pt')
-    ui.loadData(pd.DataFrame.from_csv('data.csv'))
+    ui.loadData(pd.DataFrame.from_csv('LWZS.csv'))
     ui.refreshAll()
     app.exec_()
