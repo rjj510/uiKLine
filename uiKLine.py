@@ -4,6 +4,7 @@ Python K线模块,包含十字光标和鼠标键盘交互
 Support By 量投科技(http://www.quantdo.com.cn/)
 """
 import traceback
+import talib as ta
 import numpy as np
 import pandas as pd
 from functools import partial
@@ -14,9 +15,9 @@ from qtpy.QtCore import *
 from qtpy.QtWidgets import *
 from qtpy import QtGui,QtCore
 from uiCrosshair import Crosshair
+from uiCustomMenu import  CustomMenu
 import pyqtgraph as pg
-
-
+from qtpy.QtGui  import  QPainter, QPainterPath, QPen, QColor, QPixmap, QIcon, QBrush, QCursor,QFont
 
 # 字符串转换
 #---------------------------------------------------------------------------------------
@@ -140,7 +141,7 @@ class KeyWraper(QWidget):
     #----------------------------------------------------------------------
     def onPaint(self):
         pass
-
+  
 
 ########################################################################
 # 选择缩放功能支持
@@ -299,7 +300,13 @@ class CandlestickItem(pg.GraphicsObject):
     #----------------------------------------------------------------------
     def boundingRect(self):
         return QtCore.QRectF(0,self.low,len(self.pictures),(self.high-self.low))
-
+    
+    #----------------------------------------------------------------------
+    def hide(self):
+        self.parent.hide()
+        pass
+        
+        
 
 ########################################################################
 class KLineWidget(KeyWraper):
@@ -310,12 +317,20 @@ class KLineWidget(KeyWraper):
 
     # 保存K线数据的列表和Numpy Array对象
     listBar  = []
+    listbarshow= False
     listVol  = []
     listHigh = []
     listLow  = []
     listSig  = []
     listOpenInterest = []
     arrows   = []
+    curves   = []
+    listSig_deal_DIRECTION  = []
+    listSig_deal_OFFSET = []
+    KLINE_show=True
+    MA_SHORT_show=False
+    MA_LONG_show=False
+    KLINE_CLOSE=[]
 
     # 是否完成了历史数据的读取
     initCompleted = False
@@ -336,12 +351,19 @@ class KLineWidget(KeyWraper):
         # 缓存数据
         self.datas    = []
         self.listBar  = []
+        self.listbarshow= True
         self.listVol  = []
         self.listHigh = []
         self.listLow  = []
         self.listSig  = []
         self.listOpenInterest = []
         self.arrows   = []
+        self.curves   = []
+        self.listSig_deal_DIRECTION  = []
+        self.listSig_deal_OFFSET = []    
+        self.KLINE_CLOSE=[]       
+        self.MA_SHORT_real=[]
+        self.MA_LONG_real=[]
 
         # 所有K线上信号图
         self.allColor = deque(['blue','green','yellow','white'])
@@ -361,6 +383,8 @@ class KLineWidget(KeyWraper):
         # 调用函数
         self.initUi()
 
+
+        self.menu= CustomMenu(self)
     #----------------------------------------------------------------------
     #  初始化相关 
     #----------------------------------------------------------------------
@@ -373,7 +397,7 @@ class KLineWidget(KeyWraper):
         self.lay_KL = pg.GraphicsLayout(border=(100,100,100))
         self.lay_KL.setContentsMargins(10, 10, 10, 10)
         self.lay_KL.setSpacing(0)
-        self.lay_KL.setBorder(color=(255, 255, 255, 255), width=0.8)
+        self.lay_KL.setBorder(color=(255, 0, 0, 255), width=0.8)
         self.lay_KL.setZValue(0)
         self.KLtitle = self.lay_KL.addLabel(u'')
         self.pw.setCentralItem(self.lay_KL)
@@ -404,9 +428,9 @@ class KLineWidget(KeyWraper):
         plotItem.showAxis('right')
         plotItem.setDownsampling(mode='peak')
         plotItem.setRange(xRange = (0,1),yRange = (0,1))
-        plotItem.getAxis('right').setWidth(60)
+        plotItem.getAxis('right').setWidth(30)
         plotItem.getAxis('right').setStyle(tickFont = QFont("Roman times",10,QFont.Bold))
-        plotItem.getAxis('right').setPen(color=(255, 255, 255, 255), width=0.8)
+        plotItem.getAxis('right').setPen(color=(255, 0, 0, 255), width=0.8)
         plotItem.showGrid(True,True)
         plotItem.hideButtons()
         return plotItem
@@ -417,7 +441,9 @@ class KLineWidget(KeyWraper):
         self.pwVol  = self.makePI('_'.join([self.windowId,'PlotVOL']))
         self.volume = CandlestickItem(self.listVol)
         self.pwVol.addItem(self.volume)
-        self.pwVol.setMaximumHeight(150)
+        
+        
+        self.pwVol.setMaximumHeight(50)
         self.pwVol.setXLink('_'.join([self.windowId,'PlotOI']))
         self.pwVol.hideAxis('bottom')
 
@@ -426,10 +452,28 @@ class KLineWidget(KeyWraper):
 
     #----------------------------------------------------------------------
     def initplotKline(self):
-        """初始化K线子图"""
+        """初始化K线子图以及指标子图"""
         self.pwKL = self.makePI('_'.join([self.windowId,'PlotKL']))
         self.candle = CandlestickItem(self.listBar)
         self.pwKL.addItem(self.candle)
+        
+        
+        self.KLINEOI_CLOSE = pg.PlotCurveItem(pen=({'color': "w", 'width': 1})) 
+        self.pwKL.addItem(self.KLINEOI_CLOSE)
+        self.KLINEOI_CLOSE.hide()
+        
+        
+              
+        self.MA_SHORTOI = pg.PlotCurveItem(pen=({'color': "r", 'width': 1})) 
+        self.pwKL.addItem(self.MA_SHORTOI)
+        self.MA_SHORTOI.hide()        
+        
+        
+        self.MA_LONGOI = pg.PlotCurveItem(pen=({'color': "r", 'width': 1,'dash':[3, 3, 3, 3]})) 
+        self.pwKL.addItem(self.MA_LONGOI)
+        self.MA_LONGOI.hide()                
+               
+        
         self.pwKL.setMinimumHeight(350)
         self.pwKL.setXLink('_'.join([self.windowId,'PlotOI']))
         self.pwKL.hideAxis('bottom')
@@ -443,8 +487,10 @@ class KLineWidget(KeyWraper):
         self.pwOI = self.makePI('_'.join([self.windowId,'PlotOI']))
         self.curveOI = self.pwOI.plot()
 
+        self.pwOI.setMaximumHeight(50)
         self.lay_KL.nextRow()
         self.lay_KL.addItem(self.pwOI)
+        pass
 
     #----------------------------------------------------------------------
     #  画图相关 
@@ -460,6 +506,19 @@ class KLineWidget(KeyWraper):
         if self.initCompleted:
             self.candle.generatePicture(self.listBar[xmin:xmax],redraw)   # 画K线
             self.plotMark()                                               # 显示开平仓信号位置
+            self.KLINEOI_CLOSE.setData(np.array(self.KLINE_CLOSE))#画收盘价曲线
+            
+    #----------------------------------------------------------------------   
+    def plotMA_SHORT(self,xmin=0,xmax=-1):
+        """重画MA_SHORT """
+        if self.initCompleted:
+            self.MA_SHORTOI.setData(np.array(self.MA_SHORT_real))#画MA_SHORT            
+            
+    #----------------------------------------------------------------------   
+    def plotMA_LONG(self,xmin=0,xmax=-1):
+        """重画MA_LONG  """
+        if self.initCompleted:
+            self.MA_LONGOI.setData(np.array(self.MA_LONG_real))#画MA_LONG  
 
     #----------------------------------------------------------------------
     def plotOI(self,xmin=0,xmax=-1):
@@ -512,19 +571,42 @@ class KLineWidget(KeyWraper):
             return
         for arrow in self.arrows:
             self.pwKL.removeItem(arrow)
+        for curve in self.curves:
+            self.pwKL.removeItem(curve)
         # 画买卖信号
-        for i in range(len(self.listSig)):
+        lastbk_x=-1  #上一个买开的x
+        lastbk_y=-1  #上一个买开的y
+        lastsk_x=-1  #上一个卖开的x
+        lastsk_y=-1  #上一个卖开的y        
+        for i in range(len(self.listSig_deal_DIRECTION)):
             # 无信号
-            if self.listSig[i] == 0:
+            if   cmp(self.listSig_deal_DIRECTION[i] , '-')== 0 or cmp(self.listSig_deal_OFFSET[i] , '-') == 0:
                 continue
-            # 买信号
-            elif self.listSig[i] > 0:
-                arrow = pg.ArrowItem(pos=(i, self.datas[i]['low']),  angle=90, brush=(255, 0, 0))
-            # 卖信号
-            elif self.listSig[i] < 0:
-                arrow = pg.ArrowItem(pos=(i, self.datas[i]['high']), angle=-90, brush=(0, 255, 0))
+            # 买开信号
+            elif cmp(self.listSig_deal_DIRECTION[i] , '多')==0 and cmp(self.listSig_deal_OFFSET[i] , '开仓')==0 :
+                arrow = pg.ArrowItem(pos=(i, self.datas[i]['low']), size=7,tipAngle=55,tailLen=3,tailWidth=4, angle=90, brush=(255, 0, 0),pen=({'color': "r", 'width': 1}))
+                lastbk_x = i
+                lastbk_y = self.datas[i]['close']
+            # 卖平信号
+            elif cmp(self.listSig_deal_DIRECTION[i] , '空')==0  and cmp(self.listSig_deal_OFFSET[i] , '平仓')==0 :
+                arrow = pg.ArrowItem(pos=(i, self.datas[i]['high']),size=7,tipAngle=55,tailLen=3,tailWidth=4 ,angle=-90, brush=(0, 0, 0),pen=({'color': "g", 'width': 1}))
+                curve = pg.PlotCurveItem(x=np.array([lastbk_x,i]),y=np.array([lastbk_y,self.datas[i]['close']]),pen=({'color': "r", 'width': 3})) 
+                self.pwKL.addItem(curve)          
+                self.curves.append(curve)  
+            # 卖开信号
+            elif cmp(self.listSig_deal_DIRECTION[i] , '空')==0  and cmp(self.listSig_deal_OFFSET[i] , '开仓')==0 :
+                arrow = pg.ArrowItem(pos=(i, self.datas[i]['high']),size=7,tipAngle=55,tailLen=3,tailWidth=4,angle=-90, brush=(0, 255, 0),pen=({'color': "g", 'width': 1}))
+                lastsk_x = i
+                lastsk_y = self.datas[i]['close']                
+            # 买平信号
+            elif cmp(self.listSig_deal_DIRECTION[i] , '多')==0  and cmp(self.listSig_deal_OFFSET[i] , '平仓')==0 :
+                arrow = pg.ArrowItem(pos=(i, self.datas[i]['low']),size=7,tipAngle=55,tailLen=3,tailWidth=4 ,angle=90, brush=(0, 0, 0),pen=({'color': "r", 'width': 1}))
+                curve = pg.PlotCurveItem(x=np.array([lastsk_x,i]),y=np.array([lastsk_y,self.datas[i]['close']]),pen=({'color': "g", 'width': 3})) 
+                self.pwKL.addItem(curve)          
+                self.curves.append(curve)  
             self.pwKL.addItem(arrow)
-            self.arrows.append(arrow)
+            self.arrows.append(arrow)                
+         
 
     #----------------------------------------------------------------------
     def updateAll(self):
@@ -588,14 +670,14 @@ class KLineWidget(KeyWraper):
         self.pwVol.setRange(xRange = (xmin,xmax))
 
     #----------------------------------------------------------------------
-    #  快捷键相关 
+    #  快捷键与鼠标相关 
     #----------------------------------------------------------------------
     def onNxt(self):
         """跳转到下一个开平仓点"""
         if len(self.listSig)>0 and not self.index is None:
             datalen = len(self.listSig)
             if self.index < datalen-2 : self.index+=1
-            while self.index < datalen-2 and self.listSig[self.index] == 0:
+            while self.index < datalen-2 and cmp(self.listSig_deal_DIRECTION[self.index] , '-')== 0:
                 self.index+=1
             self.refresh()
             x = self.index
@@ -607,7 +689,7 @@ class KLineWidget(KeyWraper):
         """跳转到上一个开平仓点"""
         if  len(self.listSig)>0 and not self.index is None:
             if self.index > 0: self.index-=1
-            while self.index > 0 and self.listSig[self.index] == 0:
+            while self.index > 0 and cmp(self.listSig_deal_DIRECTION[self.index] , '-')== 0:
                 self.index-=1
             self.refresh()
             x = self.index
@@ -661,7 +743,59 @@ class KLineWidget(KeyWraper):
                 self.index += 1
                 self.refresh()
             self.crosshair.signal.emit((x,y))
+    #----------------------------------------------------------------------
+    def onRClick(self,pos):
+        self.menu.showContextMenu(pos)
+        
+    #----------------------------------------------------------------------
+    #  右键菜单相关 
+    #----------------------------------------------------------------------              
+    def initIndicator(self,data):
+        if cmp(data, u'信号隐藏') == 0 :
+            for arrow in self.arrows:
+                arrow.hide()
+            for curve in self.curves:
+                curve.hide()
+        elif cmp(data, u'信号显示') == 0 :
+            for arrow in self.arrows:
+                arrow.show()  
+            for curve in self.curves:
+                curve.show()
+        elif cmp(data, u'KLINE') == 0 :
+            if self.KLINE_show ==True:
+                self.pwKL.removeItem(self.candle)        
+                self.KLINEOI_CLOSE.show()  
+                self.KLINE_show = False   
+            else:
+                self.pwKL.addItem(self.candle)
+                self.KLINEOI_CLOSE.hide()       
+                self.KLINE_show=True
+        elif cmp(data, u'MA SHORT') == 0 :
+            if len(self.MA_SHORT_real) == 0:
+                self.MA_SHORT_real = ta.MA(np.array(self.KLINE_CLOSE), timeperiod=22, matype=0).tolist()
+                self.crosshair.ma_s_values = self.MA_SHORT_real 
+                self.plotMA_SHORT(0,len(self.MA_SHORT_real))
+                print(self.MA_SHORT_real)
+            if self.MA_SHORT_show :
+                self.MA_SHORTOI.hide() 
+                self.MA_SHORT_show =False
+            else:
+                self.MA_SHORTOI.show() 
+                self.MA_SHORT_show =True
+        elif cmp(data, u'MA LONG') == 0 :
+            if len(self.MA_LONG_real) == 0:
+                self.MA_LONG_real = ta.MA(np.array(self.KLINE_CLOSE), timeperiod=92, matype=0).tolist()
+                self.crosshair.ma_l_values = self.MA_LONG_real 
+                self.plotMA_LONG(0,len(self.MA_LONG_real))
+            if self.MA_LONG_show :
+                self.MA_LONGOI.hide() 
+                self.MA_LONG_show =False
+            else:
+                self.MA_LONGOI.show() 
+                self.MA_LONG_show =True
+        
     
+            
     #----------------------------------------------------------------------
     # 界面回调相关
     #----------------------------------------------------------------------
@@ -712,6 +846,8 @@ class KLineWidget(KeyWraper):
         self.listHigh = []
         self.listOpenInterest = []
         self.listSig = []
+        self.listSig_deal_DIRECTION  = []
+        self.listSig_deal_OFFSET = []
         self.sigData = {}
         self.datas = None
 
@@ -803,7 +939,13 @@ class KLineWidget(KeyWraper):
         datas0['high']        = datas['volume']
         datas0['time_int']    = np.array(range(len(datas.index)))
         self.listVol          = datas0[['time_int','open','close','low','high']].to_records(False)
-
+    #----------------------------------------------------------------------
+    def loadData_listsig(self, datas):  
+        datas['deal_DIRECTION']=datas['deal_DIRECTION'].fillna('-')
+        datas['deal_OFFSET']=datas['deal_OFFSET'].fillna('-')
+        self.listSig_deal_DIRECTION  = datas['deal_DIRECTION'].tolist()
+        self.listSig_deal_OFFSET = datas['deal_OFFSET'].tolist()     
+        self.KLINE_CLOSE = datas['closePrice'].tolist()
     #----------------------------------------------------------------------
     def refreshAll(self, redraw=True, update=False):
         """
@@ -831,7 +973,8 @@ if __name__ == '__main__':
     # K线界面
     ui = KLineWidget()
     ui.show()
-    ui.KLtitle.setText('rb1701',size='20pt')
+    ui.KLtitle.setText('RB9999',size='10pt',color='FFFF00')
     ui.loadData(pd.DataFrame.from_csv('LWZS.csv'))
+    ui.loadData_listsig(pd.DataFrame.from_csv('DailyResult.csv'))
     ui.refreshAll()
     app.exec_()

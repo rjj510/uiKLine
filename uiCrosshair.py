@@ -31,6 +31,8 @@ class Crosshair(QtCore.QObject):
         self.yAxis = 0
 
         self.datas = None
+        self.ma_s_values = []
+        self.ma_l_values = []
 
         self.yAxises    = [0 for i in range(3)]
         self.leftX      = [0 for i in range(3)]
@@ -53,7 +55,7 @@ class Crosshair(QtCore.QObject):
         self.__textSig.setZValue(2)
         self.__textSubSig.setZValue(2)
         self.__textVolume.setZValue(2)
-        self.__textInfo.border = pg.mkPen(color=(230, 255, 0, 255), width=1.2)
+        self.__textInfo.border = pg.mkPen(color=(230, 255, 0, 255), width=1)
         
         for i in range(3):
             self.textPrices[i].setZValue(2)
@@ -138,8 +140,21 @@ class Crosshair(QtCore.QObject):
             highPrice       = data['high']
             volume          = int(data['volume'])
             openInterest    = int(data['openInterest'])
-            preClosePrice   = lastdata['close']
-            tradePrice      = abs(self.master.listSig[xAxis])
+            preClosePrice   = lastdata['close']  
+            MA_S            = 0            
+            if len(self.ma_s_values) > 0 and self.master.MA_SHORT_show == True:
+                MA_S            = self.ma_s_values[xAxis]
+            MA_L            = 0            
+            if len(self.ma_l_values) > 0 and self.master.MA_LONG_show == True:
+                MA_L            = self.ma_l_values[xAxis]                          
+            tradePrice = 0 
+            if   cmp(self.master.listSig_deal_DIRECTION[xAxis] , '-')== 0 or cmp(self.master.listSig_deal_OFFSET[xAxis] , '-') == 0:
+                tradePrice = 0 
+            else:
+                tradePrice = closePrice # 所有策略以收盘价成交        
+                
+
+                
         except Exception as e:
             return
             
@@ -187,20 +202,19 @@ class Crosshair(QtCore.QObject):
                             u'<div style="text-align: center; background-color:#000">\
                                 <span style="color: white;  font-size: 12px;">日期</span><br>\
                                 <span style="color: yellow; font-size: 12px;">%s</span><br>\
-                                <span style="color: white;  font-size: 12px;">时间</span><br>\
-                                <span style="color: yellow; font-size: 12px;">%s</span><br>\
                                 <span style="color: white;  font-size: 12px;">价格</span><br>\
                                 <span style="color: %s;     font-size: 12px;">(开) %d</span><br>\
                                 <span style="color: %s;     font-size: 12px;">(高) %d</span><br>\
                                 <span style="color: %s;     font-size: 12px;">(低) %d</span><br>\
                                 <span style="color: %s;     font-size: 12px;">(收) %d</span><br>\
-                                <span style="color: white;  font-size: 12px;">成交量</span><br>\
-                                <span style="color: yellow; font-size: 12px;">(量) %d</span><br>\
                                 <span style="color: white;  font-size: 12px;">成交价</span><br>\
                                 <span style="color: yellow; font-size: 12px;">(价) %d</span><br>\
+                                <span style="color: white;  font-size: 12px;">指标</span><br>\
+                                <span style="color: yellow; font-size: 12px;">(MAS) %d</span><br>\
+                                <span style="color: yellow; font-size: 12px;">(MAL) %d</span><br>\
                             </div>'\
-                                % (dateText,timeText,cOpen,openPrice,cHigh,highPrice,\
-                                    cLow,lowPrice,cClose,closePrice,volume,tradePrice))             
+                                % (dateText,cOpen,openPrice,cHigh,highPrice,\
+                                    cLow,lowPrice,cClose,closePrice,tradePrice,MA_S,MA_L))             
         self.__textDate.setHtml(
                             '<div style="text-align: center">\
                                 <span style="color: yellow; font-size: 12px;">%s</span>\
