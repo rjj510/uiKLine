@@ -1,2 +1,2 @@
-@python -u uiKLineTool.py
+@python -u uiKLine.py
 pause

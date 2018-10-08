@@ -7,6 +7,7 @@ import traceback
 import talib as ta
 import numpy as np
 import pandas as pd
+import os 
 from functools import partial
 from collections import deque
 
@@ -18,6 +19,14 @@ from uiCrosshair import Crosshair
 from uiCustomMenu import  CustomMenu
 import pyqtgraph as pg
 from qtpy.QtGui  import  QPainter, QPainterPath, QPen, QColor, QPixmap, QIcon, QBrush, QCursor,QFont
+import datetime as dt          
+
+import sys
+from sys import path
+path.append('F:\\vnpy-1.9.0\\examples\\CtaBacktesting')
+reload(sys)
+sys.setdefaultencoding('utf-8')          
+from runBacktesting_WH import calculateDailyResult_to_CSV as rb9999DailyResult
 
 # 字符串转换
 #---------------------------------------------------------------------------------------
@@ -331,6 +340,8 @@ class KLineWidget(KeyWraper):
     MA_SHORT_show=False
     MA_LONG_show=False
     KLINE_CLOSE=[]
+    start_date=[] #[20090327开始日期，列表的位置]
+
 
     # 是否完成了历史数据的读取
     initCompleted = False
@@ -364,6 +375,7 @@ class KLineWidget(KeyWraper):
         self.KLINE_CLOSE=[]       
         self.MA_SHORT_real=[]
         self.MA_LONG_real=[]
+        self.start_time=[]
 
         # 所有K线上信号图
         self.allColor = deque(['blue','green','yellow','white'])
@@ -473,6 +485,8 @@ class KLineWidget(KeyWraper):
         self.pwKL.addItem(self.MA_LONGOI)
         self.MA_LONGOI.hide()                
                
+        self.start_date_Line     = pg.InfiniteLine(angle=90, movable=False,pen=({'color': "w", 'width': 0.5})) 
+        self.pwKL.addItem(self.start_date_Line)
         
         self.pwKL.setMinimumHeight(350)
         self.pwKL.setXLink('_'.join([self.windowId,'PlotOI']))
@@ -505,21 +519,25 @@ class KLineWidget(KeyWraper):
         """重画K线子图"""
         if self.initCompleted:
             self.candle.generatePicture(self.listBar[xmin:xmax],redraw)   # 画K线
+            self.KLINEOI_CLOSE.setData(np.array(self.KLINE_CLOSE))        #画收盘价曲线
             self.plotMark()                                               # 显示开平仓信号位置
-            self.KLINEOI_CLOSE.setData(np.array(self.KLINE_CLOSE))#画收盘价曲线
             
     #----------------------------------------------------------------------   
-    def plotMA_SHORT(self,xmin=0,xmax=-1):
+    def plotMA_SHORT(self):
         """重画MA_SHORT """
         if self.initCompleted:
             self.MA_SHORTOI.setData(np.array(self.MA_SHORT_real))#画MA_SHORT            
             
     #----------------------------------------------------------------------   
-    def plotMA_LONG(self,xmin=0,xmax=-1):
+    def plotMA_LONG(self):
         """重画MA_LONG  """
         if self.initCompleted:
             self.MA_LONGOI.setData(np.array(self.MA_LONG_real))#画MA_LONG  
-
+    #----------------------------------------------------------------------   
+    def plot_startdate(self,pos):
+        """重画起始日期  """
+        if self.initCompleted:
+            self.start_date_Line.setPos(pos) 
     #----------------------------------------------------------------------
     def plotOI(self,xmin=0,xmax=-1):
         """重画持仓量子图"""
@@ -590,7 +608,7 @@ class KLineWidget(KeyWraper):
             # 卖平信号
             elif cmp(self.listSig_deal_DIRECTION[i] , '空')==0  and cmp(self.listSig_deal_OFFSET[i] , '平仓')==0 :
                 arrow = pg.ArrowItem(pos=(i, self.datas[i]['high']),size=7,tipAngle=55,tailLen=3,tailWidth=4 ,angle=-90, brush=(0, 0, 0),pen=({'color': "g", 'width': 1}))
-                curve = pg.PlotCurveItem(x=np.array([lastbk_x,i]),y=np.array([lastbk_y,self.datas[i]['close']]),pen=({'color': "r", 'width': 3})) 
+                curve = pg.PlotCurveItem(x=np.array([lastbk_x,i]),y=np.array([lastbk_y,self.datas[i]['close']]),name='duo',pen=({'color': "r", 'width': 3})) 
                 self.pwKL.addItem(curve)          
                 self.curves.append(curve)  
             # 卖开信号
@@ -649,6 +667,7 @@ class KLineWidget(KeyWraper):
         self.pwKL.setLimits(xMin=xMin,xMax=xMax)
         self.pwVol.setLimits(xMin=xMin,xMax=xMax)
         self.plotKline(redraw,xMin,xMax)                       # K线图
+        self.plot_startdate(self.start_date[1])
         self.plotVol(redraw,xMin,xMax)                         # K线副图，成交量
         self.plotOI(0,len(self.datas))                         # K线副图，持仓量
         self.refresh()
@@ -774,8 +793,7 @@ class KLineWidget(KeyWraper):
             if len(self.MA_SHORT_real) == 0:
                 self.MA_SHORT_real = ta.MA(np.array(self.KLINE_CLOSE), timeperiod=22, matype=0).tolist()
                 self.crosshair.ma_s_values = self.MA_SHORT_real 
-                self.plotMA_SHORT(0,len(self.MA_SHORT_real))
-                print(self.MA_SHORT_real)
+                self.plotMA_SHORT()
             if self.MA_SHORT_show :
                 self.MA_SHORTOI.hide() 
                 self.MA_SHORT_show =False
@@ -786,16 +804,31 @@ class KLineWidget(KeyWraper):
             if len(self.MA_LONG_real) == 0:
                 self.MA_LONG_real = ta.MA(np.array(self.KLINE_CLOSE), timeperiod=92, matype=0).tolist()
                 self.crosshair.ma_l_values = self.MA_LONG_real 
-                self.plotMA_LONG(0,len(self.MA_LONG_real))
+                self.plotMA_LONG()
             if self.MA_LONG_show :
                 self.MA_LONGOI.hide() 
                 self.MA_LONG_show =False
             else:
                 self.MA_LONGOI.show() 
                 self.MA_LONG_show =True
-        
-    
+        elif cmp(data, u'设为起始日期') == 0 :
+            self.plot_startdate(self.crosshair.cur_date()[1])
+            self.start_date = self.crosshair.cur_date()
+        elif cmp(data, u'MA_螺纹多_PLUS') == 0 :
+            initday = 100  #MA_螺纹多_PLUS策略需要100天的预处理量
+            if self.start_date[1] < 100:
+                initday = 0 
+            rb9999DailyResult(dt.datetime.strftime(pd.to_datetime(pd.to_datetime(self.datas[self.start_date[1]-initday]['datetime'],)),'%Y%m%d') ,os.path.abspath('.\data\dailyresult\RB9999.csv'))
+            self.clearSigData()
+            self.loadData_listsig(pd.DataFrame.from_csv('data\dailyresult\RB9999.csv'))
+            self.plotMark()                       
+            if self.KLINE_show ==True:
+                self.KLINEOI_CLOSE.hide()  
+            else:
+                self.KLINEOI_CLOSE.show()          
             
+    
+                    
     #----------------------------------------------------------------------
     # 界面回调相关
     #----------------------------------------------------------------------
@@ -850,6 +883,22 @@ class KLineWidget(KeyWraper):
         self.listSig_deal_OFFSET = []
         self.sigData = {}
         self.datas = None
+        self.MA_SHORT_real=[]
+        self.MA_LONG_real=[]
+        self.start_time=[]    
+        
+    #----------------------------------------------------------------------
+    def clearSigData(self):
+        """清空信号数据"""
+        # 清空数据，重新画图
+        self.listSig_deal_DIRECTION  = []
+        self.listSig_deal_OFFSET = []
+        for arrow in self.arrows:
+            self.pwKL.removeItem(arrow)
+        for curve in self.curves:
+            self.pwKL.removeItem(curve)        
+        self.arrows   = []
+        self.curves   = []        
 
     #----------------------------------------------------------------------
     def clearSig(self,main=True):
@@ -931,6 +980,9 @@ class KLineWidget(KeyWraper):
         self.listLow          = list(datas['low'])
         self.listOpenInterest = list(datas['openInterest'])
         self.listSig          = [0]*(len(self.datas)-1) if sigs is None else sigs
+    
+        self.KLINE_CLOSE = map(float, list(datas['close']))
+        self.start_date  = [dt.datetime.strftime(pd.to_datetime(pd.to_datetime(self.datas[0]['datetime'])),'%Y%m%d') ,0]
         # 成交量颜色和涨跌同步，K线方向由涨跌决定
         datas0                = pd.DataFrame()
         datas0['open']        = datas.apply(lambda x:0 if x['close'] >= x['open'] else x['volume'],axis=1)  
@@ -944,8 +996,15 @@ class KLineWidget(KeyWraper):
         datas['deal_DIRECTION']=datas['deal_DIRECTION'].fillna('-')
         datas['deal_OFFSET']=datas['deal_OFFSET'].fillna('-')
         self.listSig_deal_DIRECTION  = datas['deal_DIRECTION'].tolist()
-        self.listSig_deal_OFFSET = datas['deal_OFFSET'].tolist()     
-        self.KLINE_CLOSE = datas['closePrice'].tolist()
+        if len(self.listSig_deal_DIRECTION) < len(self.KLINE_CLOSE):
+            list1 = ['-' for i in range(len(self.KLINE_CLOSE)- len(self.listSig_deal_DIRECTION))]
+            list1.extend(self.listSig_deal_DIRECTION)
+            self.listSig_deal_DIRECTION = list1
+        self.listSig_deal_OFFSET = datas['deal_OFFSET'].tolist() 
+        if len(self.listSig_deal_OFFSET) < len(self.KLINE_CLOSE):
+            list1 = ['-' for i in range(len(self.KLINE_CLOSE)- len(self.listSig_deal_OFFSET))]
+            list1.extend(self.listSig_deal_OFFSET)
+            self.listSig_deal_OFFSET = list1
     #----------------------------------------------------------------------
     def refreshAll(self, redraw=True, update=False):
         """
@@ -962,7 +1021,7 @@ class KLineWidget(KeyWraper):
 # 功能测试
 ########################################################################
 import sys
-if __name__ == '__main__':
+if __name__ == '__main__': 
     app = QApplication(sys.argv)
     # 界面设置
     cfgfile = QtCore.QFile('css.qss')
@@ -974,7 +1033,7 @@ if __name__ == '__main__':
     ui = KLineWidget()
     ui.show()
     ui.KLtitle.setText('RB9999',size='10pt',color='FFFF00')
-    ui.loadData(pd.DataFrame.from_csv('LWZS.csv'))
-    ui.loadData_listsig(pd.DataFrame.from_csv('DailyResult.csv'))
+    ui.loadData(pd.DataFrame.from_csv('data\dailydata\RB9999.csv'))
+    ui.loadData_listsig(pd.DataFrame.from_csv('data\dailyresult\RB9999.csv'))
     ui.refreshAll()
     app.exec_()

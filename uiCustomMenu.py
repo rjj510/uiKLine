@@ -63,7 +63,7 @@ class CustomMenu( QtWidgets.QPushButton):
         self.contextMenu = QMenu(self)
         self.trendMenu=self.contextMenu.addMenu(u"k线形态")
         self.swingMenu = self.contextMenu.addMenu(u"技术指标")
-        self.amountMenu = self.contextMenu.addMenu(u"量仓分析")
+        self.amountMenu = self.contextMenu.addMenu(u"策略研究")
         # 添加二级菜单
 
         #趋势分析指标
@@ -81,10 +81,14 @@ class CustomMenu( QtWidgets.QPushButton):
         self.actionCCI.triggered.connect(lambda: self.parent.initIndicator(u"MA SHORT"))
         self.actionROC = self.swingMenu.addAction(u'MA LONG')
         self.actionROC.triggered.connect(lambda: self.parent.initIndicator(u"MA LONG"))
+        
+        ##设为起始日期
+        self.actionOPI = self.amountMenu.addAction(u'设为起始日期')
+        self.actionOPI.triggered.connect(lambda: self.parent.initIndicator(u"设为起始日期"))        
 
         ##量仓分析
-        self.actionOPI = self.amountMenu.addAction(u'OPI')
-        self.actionOPI.triggered.connect(lambda: self.parent.initIndicator(u"OPI"))
+        self.actionOPI = self.amountMenu.addAction(u'MA_螺纹多_PLUS')
+        self.actionOPI.triggered.connect(lambda: self.parent.initIndicator(u"MA_螺纹多_PLUS"))
 
         ##成交量分析
         self.actionVOL = self.amountMenu.addAction(u'CJL')

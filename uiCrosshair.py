@@ -260,3 +260,9 @@ class Crosshair(QtCore.QObject):
         # 修改对称方式防止遮挡
         self.__textDate.anchor = Point((1,1)) if xAxis > self.master.index else Point((0,1))
         self.__textDate.setPos(xAxis,br[2].y())
+        
+    def cur_date(self):
+        return [dt.datetime.strftime(pd.to_datetime(pd.to_datetime(self.datas[self.xAxis]['datetime'],)),'%Y%m%d') ,self.xAxis]
+    
+  
+            
