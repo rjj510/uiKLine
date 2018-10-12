@@ -21,6 +21,7 @@ import pyqtgraph as pg
 from qtpy.QtGui  import  QPainter, QPainterPath, QPen, QColor, QPixmap, QIcon, QBrush, QCursor,QFont
 import datetime as dt          
 
+import json
 import sys
 from sys import path
 path.append('F:\\vnpy-1.9.0\\examples\\CtaBacktesting')
@@ -339,6 +340,7 @@ class KLineWidget(KeyWraper):
     KLINE_show=True
     MA_SHORT_show=False
     MA_LONG_show=False
+    signal_show=True    
     KLINE_CLOSE=[]
     start_date=[] #[20090327开始日期，列表的位置]
 
@@ -376,6 +378,9 @@ class KLineWidget(KeyWraper):
         self.MA_SHORT_real=[]
         self.MA_LONG_real=[]
         self.start_time=[]
+        self.MA_SHORT_show=False
+        self.MA_LONG_show=False   
+        self.signal_show=False
 
         # 所有K线上信号图
         self.allColor = deque(['blue','green','yellow','white'])
@@ -775,11 +780,21 @@ class KLineWidget(KeyWraper):
                 arrow.hide()
             for curve in self.curves:
                 curve.hide()
+            self.signal_show=False
+            klinesettings= self.load_json_file()
+            for setting in klinesettings:
+                setting['SIGNALSHOW']= (self.signal_show)
+            self.rewrite_json_file(klinesettings)
         elif cmp(data, u'信号显示') == 0 :
             for arrow in self.arrows:
                 arrow.show()  
             for curve in self.curves:
                 curve.show()
+            self.signal_show=True
+            klinesettings= self.load_json_file()
+            for setting in klinesettings:
+                setting['SIGNALSHOW']= (self.signal_show)
+            self.rewrite_json_file(klinesettings)
         elif cmp(data, u'KLINE') == 0 :
             if self.KLINE_show ==True:
                 self.pwKL.removeItem(self.candle)        
@@ -789,9 +804,13 @@ class KLineWidget(KeyWraper):
                 self.pwKL.addItem(self.candle)
                 self.KLINEOI_CLOSE.hide()       
                 self.KLINE_show=True
+            klinesettings= self.load_json_file()
+            for setting in klinesettings:                
+                setting['KLINESHOW']= not(self.KLINE_show)
+            self.rewrite_json_file(klinesettings)
         elif cmp(data, u'MA SHORT') == 0 :
             if len(self.MA_SHORT_real) == 0:
-                self.MA_SHORT_real = ta.MA(np.array(self.KLINE_CLOSE), timeperiod=22, matype=0).tolist()
+                self.MA_SHORT_real = ta.MA(np.array(self.KLINE_CLOSE), timeperiod=self.MA_SHORT_DAY, matype=0).tolist()
                 self.crosshair.ma_s_values = self.MA_SHORT_real 
                 self.plotMA_SHORT()
             if self.MA_SHORT_show :
@@ -800,9 +819,13 @@ class KLineWidget(KeyWraper):
             else:
                 self.MA_SHORTOI.show() 
                 self.MA_SHORT_show =True
+            klinesettings= self.load_json_file()
+            for setting in klinesettings:
+                setting['MA_SHORT_SHOW']= not(self.MA_SHORT_show)
+            self.rewrite_json_file(klinesettings)
         elif cmp(data, u'MA LONG') == 0 :
             if len(self.MA_LONG_real) == 0:
-                self.MA_LONG_real = ta.MA(np.array(self.KLINE_CLOSE), timeperiod=92, matype=0).tolist()
+                self.MA_LONG_real = ta.MA(np.array(self.KLINE_CLOSE), timeperiod=self.MA_LONG_DAY, matype=0).tolist()
                 self.crosshair.ma_l_values = self.MA_LONG_real 
                 self.plotMA_LONG()
             if self.MA_LONG_show :
@@ -811,9 +834,18 @@ class KLineWidget(KeyWraper):
             else:
                 self.MA_LONGOI.show() 
                 self.MA_LONG_show =True
+            klinesettings= self.load_json_file()
+            for setting in klinesettings:
+                setting['MA_LONG_SHOW']= not(self.MA_LONG_show)
+            self.rewrite_json_file(klinesettings)
         elif cmp(data, u'设为起始日期') == 0 :
             self.plot_startdate(self.crosshair.cur_date()[1])
             self.start_date = self.crosshair.cur_date()
+            klinesettings= self.load_json_file()
+            for setting in klinesettings:
+                setting['STARTDAY']= self.start_date[0]
+                setting['STARTPOS']= self.start_date[1]
+            self.rewrite_json_file(klinesettings)
         elif cmp(data, u'MA_螺纹多_PLUS') == 0 :
             initday = 100  #MA_螺纹多_PLUS策略需要100天的预处理量
             if self.start_date[1] < 100:
@@ -826,6 +858,14 @@ class KLineWidget(KeyWraper):
                 self.KLINEOI_CLOSE.hide()  
             else:
                 self.KLINEOI_CLOSE.show()          
+            if self.MA_LONG_show ==True:
+                self.MA_LONGOI.show() 
+            else:
+                self.MA_LONGOI.hide()            
+            if self.MA_SHORT_show ==True:
+                self.MA_SHORTOI.show() 
+            else:
+                self.MA_SHORTOI.hide()     
             
     
                     
@@ -982,7 +1022,7 @@ class KLineWidget(KeyWraper):
         self.listSig          = [0]*(len(self.datas)-1) if sigs is None else sigs
     
         self.KLINE_CLOSE = map(float, list(datas['close']))
-        self.start_date  = [dt.datetime.strftime(pd.to_datetime(pd.to_datetime(self.datas[0]['datetime'])),'%Y%m%d') ,0]
+        #self.start_date  = [dt.datetime.strftime(pd.to_datetime(pd.to_datetime(self.datas[0]['datetime'])),'%Y%m%d') ,0]
         # 成交量颜色和涨跌同步，K线方向由涨跌决定
         datas0                = pd.DataFrame()
         datas0['open']        = datas.apply(lambda x:0 if x['close'] >= x['open'] else x['volume'],axis=1)  
@@ -1016,7 +1056,56 @@ class KLineWidget(KeyWraper):
         if not update:
             self.updateAll()
         self.crosshair.signal.emit((None,None))
-
+    #----------------------------------------------------------------------
+    def loadKLineSetting(self):
+        """"""
+        try:
+            with open(u'json\\uiKLine_startpara.json') as f:
+                initsettings= json.load(f)
+                f.close()
+                self.start_date=[]
+                for setting in initsettings:
+                    self.start_date.append(setting[u'STARTDAY'])
+                    self.start_date.append(setting[u'STARTPOS'])
+                    self.MA_LONG_DAY        = setting[u'MA_LONG_DAY']
+                    self.MA_SHORT_DAY       = setting[u'MA_SHORT_DAY']
+                    self.MA_SHORT_show= setting[u'MA_SHORT_SHOW']
+                    self.MA_LONG_show= setting[u'MA_LONG_SHOW']     
+                    self.KLINE_show= setting[u'KLINESHOW']   
+                    self.signal_show = setting[u'SIGNALSHOW']  
+        except :
+            f.close()
+            self.start_date.append("20090327")
+            self.start_date.append(0)
+            self.MA_LONG_DAY        = 22
+            self.MA_SHORT_DAY       = 92
+            self.MA_SHORT_show= True
+            self.MA_LONG_show = True    
+            self.KLINE_show= True
+            self.signal_show=True
+            print "Error: uiKLine_startpara.josn没有找到文件或读取文件失败"        
+        
+    #----------------------------------------------------------------------
+    def rewrite_json_file(self,json_data):
+        with open(u'json\\uiKLine_startpara.json', 'w') as f:
+            json.dump(json_data,f,indent=2)
+        f.close()
+    #----------------------------------------------------------------------
+    def load_json_file(self):
+        try:
+            with open(u'json\\uiKLine_startpara.json') as f:
+                initsettings= json.load(f)
+                f.close()      
+        except:
+            f.close()
+            josndata = [ { u'STARTDAY' : '20090327', u'STARTPOS' : 0, u'MA_LONG_DAY' : 92, u'MA_SHORT_DAY' : 22, u'MA_SHORT_SHOW' : True,u'MA_LONG_SHOW':True,u'KLINESHOW':True,u'SIGNALSHOW':True} ]
+            self.rewrite_json_file(josndata)
+            with open(u'json\\uiKLine_startpara.json') as f:
+                initsettings= json.load(f)
+            f.close()               
+        return initsettings
+        
+        
 ########################################################################
 # 功能测试
 ########################################################################
@@ -1032,8 +1121,17 @@ if __name__ == '__main__':
     # K线界面
     ui = KLineWidget()
     ui.show()
+    ui.loadKLineSetting()
     ui.KLtitle.setText('RB9999',size='10pt',color='FFFF00')
     ui.loadData(pd.DataFrame.from_csv('data\dailydata\RB9999.csv'))
     ui.loadData_listsig(pd.DataFrame.from_csv('data\dailyresult\RB9999.csv'))
     ui.refreshAll()
+    # 初始化界面显示
+    ui.initIndicator(u'MA SHORT')
+    ui.initIndicator(u'MA LONG')
+    ui.initIndicator(u'KLINE')
+    if ui.signal_show == True :
+        ui.initIndicator(u'信号显示')
+    else:
+        ui.initIndicator(u'信号隐藏')
     app.exec_()
