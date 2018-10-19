@@ -28,6 +28,8 @@ path.append('F:\\vnpy-1.9.0\\examples\\CtaBacktesting')
 reload(sys)
 sys.setdefaultencoding('utf-8')          
 from runBacktesting_WH import calculateDailyResult_to_CSV as rb9999DailyResult
+from runBacktesting_WH import get_strategy_init_days
+from runBacktesting_WH import calculateDailyResult_init
 
 # 字符串转换
 #---------------------------------------------------------------------------------------
@@ -331,15 +333,26 @@ class KLineWidget(KeyWraper):
     listVol  = []
     listHigh = []
     listLow  = []
+    KLINE_DATE = []
+    KLINE_OPEN = []
+    KLINE_HIGH = []
+    KLINE_LOW = []
+    KLINE_SHORT_TERM_LOW = []
+    KLINE_SHORT_TERM_HIGH = []
+    KLINE_SHORT_TERM_LIST=[]
+    listClose  = []
     listSig  = []
     listOpenInterest = []
     arrows   = []
+    KLINE_SHORT_TERM_LIST_arrows = []
     curves   = []
+    KLINE_SHORT_TERM_LIST_curves = []
     listSig_deal_DIRECTION  = []
     listSig_deal_OFFSET = []
     KLINE_show=True
     MA_SHORT_show=False
     MA_LONG_show=False
+    SHORT_TERM_SHOW=False
     signal_show=True    
     KLINE_CLOSE=[]
     start_date=[] #[20090327开始日期，列表的位置]
@@ -380,6 +393,7 @@ class KLineWidget(KeyWraper):
         self.start_time=[]
         self.MA_SHORT_show=False
         self.MA_LONG_show=False   
+        self.SHORT_TERM_SHOW=False  
         self.signal_show=False
 
         # 所有K线上信号图
@@ -629,8 +643,43 @@ class KLineWidget(KeyWraper):
                 self.curves.append(curve)  
             self.pwKL.addItem(arrow)
             self.arrows.append(arrow)                
-         
-
+    #----------------------------------------------------------------------
+    def plotIndex (self):
+        """画指标"""
+        # 检查是否有数据
+        if len(self.KLINE_SHORT_TERM_LIST)==0 :
+            return
+        for arrow in self.KLINE_SHORT_TERM_LIST_arrows:
+            self.pwKL.removeItem(arrow)      
+        for curves in self.KLINE_SHORT_TERM_LIST_curves:
+            self.pwKL.removeItem(curves)              
+        for i in range(len(self.KLINE_SHORT_TERM_LIST)):
+            if  self.KLINE_SHORT_TERM_LIST[i] == 1:
+                arrow = pg.ArrowItem(pos=(i, self.datas[i]['low']), size=7,tipAngle=55,tailLen=3,tailWidth=4, angle=90, brush=(255, 97, 0),pen=({'color': "FF6100", 'width': 1}))   
+                self.pwKL.addItem(arrow)
+                self.KLINE_SHORT_TERM_LIST_arrows.append(arrow)    
+            if  self.KLINE_SHORT_TERM_LIST[i] == 2:  
+                arrow = pg.ArrowItem(pos=(i, self.datas[i]['high']),size=7,tipAngle=55,tailLen=3,tailWidth=4 ,angle=-90, brush=(0, 255, 255),pen=({'color': "00FFFF", 'width': 1}))
+                self.pwKL.addItem(arrow)
+                self.KLINE_SHORT_TERM_LIST_arrows.append(arrow)   
+        last_x=-1  #上一个x
+        last_y=-1  #上一个y   
+        last_v=-1
+        for i in range(len(self.KLINE_SHORT_TERM_LIST)):
+            if  self.KLINE_SHORT_TERM_LIST[i] != 0 :
+                if    last_x!=-1 and last_y!=-1 and  last_v!=self.KLINE_SHORT_TERM_LIST[i] and\
+                    ((last_v == 1 and self.KLINE_SHORT_TERM_LIST[i] == 2) and self.KLINE_LOW[last_x]<self.KLINE_HIGH[i]) or\
+                    ((last_v == 2 and self.KLINE_SHORT_TERM_LIST[i] == 1) and self.KLINE_HIGH[last_x]>self.KLINE_LOW[i]):
+                        curve = pg.PlotCurveItem(x=np.array([last_x,i]),y=np.array([last_y,self.datas[i]['low'] if self.KLINE_SHORT_TERM_LIST[i]==1 else self.datas[i]['high']]),name='duo',pen=({'color': "y", 'width': 1}))                 
+                        self.pwKL.addItem(curve)          
+                        self.KLINE_SHORT_TERM_LIST_curves.append(curve)    
+                last_x =i
+                if  self.KLINE_SHORT_TERM_LIST[i]  ==1 :  
+                    last_y=self.datas[i]['low']     
+                elif self.KLINE_SHORT_TERM_LIST[i] ==2 :  
+                    last_y=self.datas[i]['high']   
+                last_v=self.KLINE_SHORT_TERM_LIST[i]
+    
     #----------------------------------------------------------------------
     def updateAll(self):
         """
@@ -847,26 +896,62 @@ class KLineWidget(KeyWraper):
                 setting['STARTPOS']= self.start_date[1]
             self.rewrite_json_file(klinesettings)
         elif cmp(data, u'MA_螺纹多_PLUS') == 0 :
-            initday = 100  #MA_螺纹多_PLUS策略需要100天的预处理量
-            if self.start_date[1] < 100:
+            engine=calculateDailyResult_init()
+            initday = get_strategy_init_days(engine)  #MA_螺纹多_PLUS策略需要比起始时间多100天的预处理量
+            if self.start_date[1] < initday:
                 initday = 0 
-            rb9999DailyResult(dt.datetime.strftime(pd.to_datetime(pd.to_datetime(self.datas[self.start_date[1]-initday]['datetime'],)),'%Y%m%d') ,os.path.abspath('.\data\dailyresult\RB9999.csv'))
+            rb9999DailyResult(engine,dt.datetime.strftime(pd.to_datetime(pd.to_datetime(self.datas[self.start_date[1]-initday]['datetime'],)),'%Y%m%d') ,os.path.abspath('.\data\dailyresult\RB9999.csv'))
             self.clearSigData()
             self.loadData_listsig(pd.DataFrame.from_csv('data\dailyresult\RB9999.csv'))
-            self.plotMark()                       
+            self.plotMark()              
+            
             if self.KLINE_show ==True:
                 self.KLINEOI_CLOSE.hide()  
             else:
-                self.KLINEOI_CLOSE.show()          
+                self.KLINEOI_CLOSE.show()   
+                
             if self.MA_LONG_show ==True:
                 self.MA_LONGOI.show() 
             else:
-                self.MA_LONGOI.hide()            
+                self.MA_LONGOI.hide()          
+                
             if self.MA_SHORT_show ==True:
                 self.MA_SHORTOI.show() 
             else:
-                self.MA_SHORTOI.hide()     
-            
+                self.MA_SHORTOI.hide()   
+                
+    
+                
+            if not self.SHORT_TERM_SHOW :
+                for arrow in self.KLINE_SHORT_TERM_LIST_arrows:
+                    arrow.show()  
+                for curve in self.KLINE_SHORT_TERM_LIST_curves:
+                    curve.show()
+            else:
+                for arrow in self.KLINE_SHORT_TERM_LIST_arrows:
+                    arrow.hide()  
+                for curve in self.KLINE_SHORT_TERM_LIST_curves:
+                    curve.hide()
+        elif cmp(data, u'SHORT TERM') == 0 :
+            if len(self.KLINE_SHORT_TERM_LIST) ==0:
+                self.short_term_list()
+                self.plotIndex()
+            if self.SHORT_TERM_SHOW :
+                for arrow in self.KLINE_SHORT_TERM_LIST_arrows:
+                    arrow.show()  
+                for curve in self.KLINE_SHORT_TERM_LIST_curves:
+                    curve.show()
+                self.SHORT_TERM_SHOW =False
+            else:
+                for arrow in self.KLINE_SHORT_TERM_LIST_arrows:
+                    arrow.hide()  
+                for curve in self.KLINE_SHORT_TERM_LIST_curves:
+                    curve.hide()
+                self.SHORT_TERM_SHOW =True            
+            klinesettings= self.load_json_file()
+            for setting in klinesettings:
+                setting['SHORT_TERM_SHOW']= not(self.SHORT_TERM_SHOW)
+            self.rewrite_json_file(klinesettings)            
     
                     
     #----------------------------------------------------------------------
@@ -1022,6 +1107,10 @@ class KLineWidget(KeyWraper):
         self.listSig          = [0]*(len(self.datas)-1) if sigs is None else sigs
     
         self.KLINE_CLOSE = map(float, list(datas['close']))
+        self.KLINE_OPEN = map(float, list(datas['open']))
+        self.KLINE_HIGH = map(float, list(datas['high']))
+        self.KLINE_LOW = map(float, list(datas['low']))
+        self.KLINE_DATE = map(str, list(datas.index))
         #self.start_date  = [dt.datetime.strftime(pd.to_datetime(pd.to_datetime(self.datas[0]['datetime'])),'%Y%m%d') ,0]
         # 成交量颜色和涨跌同步，K线方向由涨跌决定
         datas0                = pd.DataFrame()
@@ -1073,6 +1162,7 @@ class KLineWidget(KeyWraper):
                     self.MA_LONG_show= setting[u'MA_LONG_SHOW']     
                     self.KLINE_show= setting[u'KLINESHOW']   
                     self.signal_show = setting[u'SIGNALSHOW']  
+                    self.SHORT_TERM_SHOW = setting[u'SHORT_TERM_SHOW']  
         except :
             f.close()
             self.start_date.append("20090327")
@@ -1083,6 +1173,7 @@ class KLineWidget(KeyWraper):
             self.MA_LONG_show = True    
             self.KLINE_show= True
             self.signal_show=True
+            self.SHORT_TERM_SHOW=True
             print "Error: uiKLine_startpara.josn没有找到文件或读取文件失败"        
         
     #----------------------------------------------------------------------
@@ -1098,19 +1189,147 @@ class KLineWidget(KeyWraper):
                 f.close()      
         except:
             f.close()
-            josndata = [ { u'STARTDAY' : '20090327', u'STARTPOS' : 0, u'MA_LONG_DAY' : 92, u'MA_SHORT_DAY' : 22, u'MA_SHORT_SHOW' : True,u'MA_LONG_SHOW':True,u'KLINESHOW':True,u'SIGNALSHOW':True} ]
+            josndata = [ { u'STARTDAY' : '20090327', u'STARTPOS' : 0, u'MA_LONG_DAY' : 92, u'MA_SHORT_DAY' : 22, u'MA_SHORT_SHOW' : True,u'MA_LONG_SHOW':True,u'KLINESHOW':True,u'SIGNALSHOW':True,u'SHORT_TERM_SHOW':True} ]
             self.rewrite_json_file(josndata)
             with open(u'json\\uiKLine_startpara.json') as f:
                 initsettings= json.load(f)
             f.close()               
         return initsettings
         
+    #----------------------------------------------------------------------
+    #  指标计算 
+    #----------------------------------------------------------------------        
+    #----------------------------------------------------------------------
+    def calculate_low(self,kline_value):
+        """计算低点"""
+        '''伪代码
+        xb = np.array([0,5,6,7,4,5,1,2,8,9])  # 原始              三个值的第1个
+        xm = np.array([5,6,7,4,5,1,2,8,9,0])  # 左移一位后面补0    三个值的第2个
+        xa = np.array([6,7,4,5,1,2,8,9,0,0])  # 左移二位后面补0    三个值的第3个
+        #第2个小于第一个和第三个 则是短期低点
+        #第2个大于第一个和第三个 则是短期高点
+        r = np.logical_and(xm<xa,xm<xb)
+        r=np.insert(r,0,False) 
+        r=np.delete(r,r.shape[0]-1) 
+        for ii in range(0,len(self.KLINE_OPEN)):
+            if result.tolist()[ii] == True: 
+                print(self.KLINE_DATE[ii],result.tolist()[ii])   
+        '''  
+        v_b = np.array(kline_value)         
+        v_m = np.delete(v_b,0) 
+        v_m = np.insert(v_m,v_m.shape[0]-1,0) 
+        v_a = np.delete(v_b,0)
+        v_a = np.delete(v_a,0)
+        v_a = np.insert(v_a,v_a.shape[0]-1,0)   
+        v_a = np.insert(v_a,v_a.shape[0]-1,0)   
+        result = np.logical_and(v_m<v_b,v_m<v_a)
+        result=np.insert(result,0,False) 
+        result=np.delete(result,result.shape[0]-1) 
+        return result             
+    #----------------------------------------------------------------------
+    def calculate_high(self,kline_value):
+        """计算低点"""
+        '''伪代码
+        xb = np.array([0,5,6,7,4,5,1,2,8,9])  # 原始              三个值的第1个
+        xm = np.array([5,6,7,4,5,1,2,8,9,0])  # 左移一位后面补0    三个值的第2个
+        xa = np.array([6,7,4,5,1,2,8,9,0,0])  # 左移二位后面补0    三个值的第3个
+        #第2个小于第一个和第三个 则是短期低点
+        #第2个大于第一个和第三个 则是短期高点
+        r = np.logical_and(xm<xa,xm<xb)
+        r=np.insert(r,0,False) 
+        r=np.delete(r,r.shape[0]-1) 
+        for ii in range(0,len(self.KLINE_OPEN)):
+            if result.tolist()[ii] == True: 
+                print(self.KLINE_DATE[ii],result.tolist()[ii])   
+        '''  
+        v_b = np.array(kline_value)         
+        v_m = np.delete(v_b,0) 
+        v_m = np.insert(v_m,v_m.shape[0]-1,0) 
+        v_a = np.delete(v_b,0)
+        v_a = np.delete(v_a,0)
+        v_a = np.insert(v_a,v_a.shape[0]-1,0)   
+        v_a = np.insert(v_a,v_a.shape[0]-1,0)   
+        result = np.logical_and(v_m>v_b,v_m>v_a)
+        result=np.insert(result,0,False) 
+        result=np.delete(result,result.shape[0]-1) 
+        return result     
+    #----------------------------------------------------------------------        
+    def short_term_low(self,kline_value_low,kline_value_high):
+        '''短期低点'''      
+        r_low= self.calculate_low(kline_value_low)
+        r_high= self.calculate_low(kline_value_high)
+        r = np.logical_and(r_low,r_high)  
+        return r
+    #----------------------------------------------------------------------        
+    def short_term_high(self,kline_value_low,kline_value_high):
+        '''短期低点'''      
+        r_low= self.calculate_high(kline_value_low)
+        r_high= self.calculate_high(kline_value_high)
+        r = np.logical_and(r_low,r_high)  
+        return r
+    #----------------------------------------------------------------------  
+    def short_term_list(self):
+        '''短期低点列表'''
+        self.KLINE_SHORT_TERM_LOW = self.short_term_low(self.KLINE_LOW,self.KLINE_HIGH)    
+        self.KLINE_SHORT_TERM_HIGH = self.short_term_high(self.KLINE_LOW,self.KLINE_HIGH)     
+        
+        self.KLINE_SHORT_TERM_LOW = [1 if i==True else 0 for i in self.KLINE_SHORT_TERM_LOW] #[1= 低点 0=普通点]
+        self.KLINE_SHORT_TERM_HIGH =[2 if i==True else 0 for i in self.KLINE_SHORT_TERM_HIGH]#[2= 高点 0=普通点]
+        self.KLINE_SHORT_TERM_LIST = (np.array(self.KLINE_SHORT_TERM_LOW) + np.array(self.KLINE_SHORT_TERM_HIGH)).tolist()     
+        lowmin_time_int = -1 
+        lowmin          = -1
+        highmax_time_int = -1 
+        highmax          = -1    
+        for i in range(0,len(self.KLINE_SHORT_TERM_LIST)):
+            #1 获得当前点
+            if self.KLINE_SHORT_TERM_LIST[i] ==  1 or self.KLINE_SHORT_TERM_LIST[i] ==  2:
+                if   self.KLINE_SHORT_TERM_LIST[i] ==  1:
+                    lowmin          = self.KLINE_LOW[i] 
+                    lowmin_time_int = i
+                elif self.KLINE_SHORT_TERM_LIST[i] ==  2:
+                    highmax          = self.KLINE_HIGH[i] 
+                    highmax_time_int = i
+                #2 判断当前点是高或者低
+                for j in range(i+1,len(self.KLINE_SHORT_TERM_LIST)):
+                    #3 从当前点出发向后查找，需要知道下一个的高低点是不是同类型 
+                    #->是同类型，则注重点放到最大值或者最小值上
+                    #  和最大值比较 比最大值小置0，比最大值大把最大值置0
+                    #  和最小值比较 同理
+                    #->不是同类型，要遵循高点大于低点，低点小于高低的原则 不满足置0
+                    if   self.KLINE_SHORT_TERM_LIST[j] ==  1 and self.KLINE_SHORT_TERM_LIST[i] == self.KLINE_SHORT_TERM_LIST[j]:
+                        if self.KLINE_LOW[j] < lowmin:
+                            self.KLINE_SHORT_TERM_LIST[lowmin_time_int]=0
+                            lowmin = self.KLINE_LOW[j] 
+                            lowmin_time_int = j
+                        else:
+                            self.KLINE_SHORT_TERM_LIST[j] = 0  
+                    elif self.KLINE_SHORT_TERM_LIST[j] ==  2 and self.KLINE_SHORT_TERM_LIST[i] == self.KLINE_SHORT_TERM_LIST[j]:
+                        if self.KLINE_HIGH[j] > highmax:
+                            self.KLINE_SHORT_TERM_LIST[highmax_time_int]=0
+                            highmax = self.KLINE_LOW[j] 
+                            highmax_time_int = j
+                        else:
+                            self.KLINE_SHORT_TERM_LIST[j] = 0                         
+                    if self.KLINE_SHORT_TERM_LIST[j] !=  0 and self.KLINE_SHORT_TERM_LIST[i] != self.KLINE_SHORT_TERM_LIST[j]:
+                        if (self.KLINE_SHORT_TERM_LIST[i] == 1 and self.KLINE_LOW[i]  < self.KLINE_HIGH[j]) or  \
+                           (self.KLINE_SHORT_TERM_LIST[i] == 2 and self.KLINE_HIGH[i] > self.KLINE_LOW[j]):
+                            pass
+                        else:
+                            pass
+                        lowmin_time_int  = -1 
+                        lowmin           = -1
+                        highmax_time_int = -1 
+                        highmax          = -1   
+                        i=j
+                        break
+            else:
+                continue
         
 ########################################################################
 # 功能测试
 ########################################################################
 import sys
-if __name__ == '__main__': 
+if __name__ == '__main__':     
     app = QApplication(sys.argv)
     # 界面设置
     cfgfile = QtCore.QFile('css.qss')
@@ -1130,6 +1349,7 @@ if __name__ == '__main__':
     ui.initIndicator(u'MA SHORT')
     ui.initIndicator(u'MA LONG')
     ui.initIndicator(u'KLINE')
+    ui.initIndicator(u'SHORT TERM')
     if ui.signal_show == True :
         ui.initIndicator(u'信号显示')
     else:

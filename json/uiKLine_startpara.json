@@ -1,12 +1,13 @@
 [
   {
-    "MA_LONG_DAY": 92, 
+    "MA_LONG_DAY": 114, 
     "SIGNALSHOW": true, 
-    "STARTDAY": "20160601", 
-    "MA_SHORT_SHOW": false, 
-    "MA_SHORT_DAY": 22, 
-    "KLINESHOW": true, 
+    "SHORT_TERM_SHOW": false, 
+    "STARTDAY": "20090330", 
+    "MA_SHORT_SHOW": true, 
+    "MA_SHORT_DAY": 19, 
+    "KLINESHOW": false, 
     "MA_LONG_SHOW": true, 
-    "STARTPOS": 1746
+    "STARTPOS": 1
   }
 ]

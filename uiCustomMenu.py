@@ -81,6 +81,8 @@ class CustomMenu( QtWidgets.QPushButton):
         self.actionCCI.triggered.connect(lambda: self.parent.initIndicator(u"MA SHORT"))
         self.actionROC = self.swingMenu.addAction(u'MA LONG')
         self.actionROC.triggered.connect(lambda: self.parent.initIndicator(u"MA LONG"))
+        self.actionSHORTTERM = self.swingMenu.addAction(u'SHORT TERM')
+        self.actionSHORTTERM.triggered.connect(lambda: self.parent.initIndicator(u"SHORT TERM"))
         
         ##设为起始日期
         self.actionOPI = self.amountMenu.addAction(u'设为起始日期')
