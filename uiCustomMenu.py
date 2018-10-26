@@ -93,8 +93,8 @@ class CustomMenu( QtWidgets.QPushButton):
         self.actionOPI.triggered.connect(lambda: self.parent.initIndicator(u"MA_螺纹多_PLUS"))
 
         ##成交量分析
-        self.actionVOL = self.amountMenu.addAction(u'CJL')
-        self.actionVOL.triggered.connect(lambda: self.parent.initIndicator(u"CJL"))
+        self.actionVOL = self.amountMenu.addAction(u'SHORTTERM_螺纹')
+        self.actionVOL.triggered.connect(lambda: self.parent.initIndicator(u"SHORTTERM_螺纹"))
 
         #self.contextMenu.exec_(QCursor.pos())  # 在鼠标位置显示
         #添加二级菜单

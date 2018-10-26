@@ -32,12 +32,8 @@ from runBacktesting_WH import calculateDailyResult_to_CSV as strategyDoubleMa_rb
 from runBacktesting_WH import get_strategy_init_days as strategyDoubleMa_get_strategy_init_days
 from runBacktesting_WH import calculateDailyResult_init as strategyDoubleMa_calculateDailyResult_init
 
-#from runBacktesting_ShortTermStrategy import calculateDailyResult_to_CSV as ShortTermStrategy_rb9999DailyResult
-#from runBacktesting_ShortTermStrategy import get_strategy_init_days as ShortTermStrategy_get_strategy_init_days
-#from runBacktesting_ShortTermStrategy import calculateDailyResult_init as ShortTermStrategy_calculateDailyResult_init
 
-import importlib
-import runBacktesting_ShortTermStrategy as ST
+
 # 字符串转换
 #---------------------------------------------------------------------------------------
 try:
@@ -966,14 +962,16 @@ class KLineWidget(KeyWraper):
                 setting['SHORT_TERM_SHOW']= not(self.SHORT_TERM_SHOW)
             self.rewrite_json_file(klinesettings)            
     
-        elif cmp(data, u'SHORTTERM_螺纹') == 0 :             
-            reload(ST)
-            engine=ST.calculateDailyResult_init()            
-            initday = ST.get_strategy_init_days(engine)  
+        elif cmp(data, u'SHORTTERM_螺纹') == 0 :        	
+        	  from runBacktesting_ShortTermStrategy import calculateDailyResult_to_CSV as ShortTermStrategy_rb9999DailyResult
+        	  from runBacktesting_ShortTermStrategy import get_strategy_init_days as ShortTermStrategy_get_strategy_init_days
+        	  from runBacktesting_ShortTermStrategy import calculateDailyResult_init as ShortTermStrategy_calculateDailyResult_init
+        	  
+            engine=ShortTermStrategy_calculateDailyResult_init()
+            initday = ShortTermStrategy_get_strategy_init_days(engine)  
             if self.start_date[1] < initday:
                 initday = 0 
-            ST.calculateDailyResult_to_CSV(engine,dt.datetime.strftime(pd.to_datetime(pd.to_datetime(self.datas[self.start_date[1]-initday]['datetime'],)),'%Y%m%d') ,self.start_date[1],os.path.abspath('.\data\dailyresult\RB9999.csv'))
-            
+            ShortTermStrategy_rb9999DailyResult(engine,dt.datetime.strftime(pd.to_datetime(pd.to_datetime(self.datas[self.start_date[1]-initday]['datetime'],)),'%Y%m%d') ,os.path.abspath('.\data\dailyresult\RB9999.csv'))
             self.clearSigData()
             self.loadData_listsig(pd.DataFrame.from_csv('data\dailyresult\RB9999.csv'))
             self.plotMark()   
@@ -1236,7 +1234,6 @@ class KLineWidget(KeyWraper):
         return index_settings
     #----------------------------------------------------------------------
     def rewrite_Index_json_file(self,json_data):
-        """把相关指标写入json文件"""
         with open(u'json\\uiKLine_index.json', 'w') as f:
             json.dump(json_data,f)
         f.close()
