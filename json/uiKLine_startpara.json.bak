@@ -2,12 +2,13 @@
   {
     "MA_LONG_DAY": 114, 
     "SIGNALSHOW": true, 
-    "SHORT_TERM_SHOW": true, 
-    "STARTDAY": "20090331", 
-    "MA_SHORT_SHOW": true, 
+    "SHORT_TERM_SHOW": false, 
+    "STARTDAY": "20150105", 
+    "MA_SHORT_SHOW": false, 
     "MA_SHORT_DAY": 11, 
-    "KLINESHOW": false, 
+    "KLINESHOW": true, 
     "MA_LONG_SHOW": true, 
-    "STARTPOS": 2
+    "STARTPOS": 1402, 
+    "StrategyName": "SHORTTERM_\u87ba\u7eb9_\u591a"
   }
 ]
