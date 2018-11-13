@@ -81,16 +81,24 @@ class CustomMenu( QtWidgets.QPushButton):
         self.actionCCI.triggered.connect(lambda: self.parent.initIndicator(u"MA SHORT"))
         self.actionROC = self.swingMenu.addAction(u'MA LONG')
         self.actionROC.triggered.connect(lambda: self.parent.initIndicator(u"MA LONG"))
-        self.actionSHORTTERM = self.swingMenu.addAction(u'SHORT TERM')
-        self.actionSHORTTERM.triggered.connect(lambda: self.parent.initIndicator(u"SHORT TERM"))
+        self.actionSHORTTERM = self.swingMenu.addAction(u'SHORT TERM(Limit)')
+        self.actionSHORTTERM.triggered.connect(lambda: self.parent.initIndicator(u"SHORT TERM(Limit)"))
+        self.actionSHORTTERMF = self.swingMenu.addAction(u'SHORT TERM(First)')
+        self.actionSHORTTERMF.triggered.connect(lambda: self.parent.initIndicator(u"SHORT TERM(First)"))
+        self.actionSHORTTERMALL = self.swingMenu.addAction(u'SHORT TERM(All)')
+        self.actionSHORTTERMALL.triggered.connect(lambda: self.parent.initIndicator(u"SHORT TERM(All)"))
         
         ##设为起始日期
         self.actionOPI = self.amountMenu.addAction(u'设为起始日期')
-        self.actionOPI.triggered.connect(lambda: self.parent.initIndicator(u"设为起始日期"))        
+        self.actionOPI.triggered.connect(lambda: self.parent.initIndicator(u"设为起始日期"))   
+        
+
+        self.actionOPI1 = self.amountMenu.addAction(u'设为结束日期')
+        self.actionOPI1.triggered.connect(lambda: self.parent.initIndicator(u"设为结束日期"))           
 
         ##量仓分析
-        self.actionOPI = self.amountMenu.addAction(u'MA_螺纹多_PLUS')
-        self.actionOPI.triggered.connect(lambda: self.parent.initIndicator(u"MA_螺纹多_PLUS"))
+        self.actionOPI2 = self.amountMenu.addAction(u'MA_螺纹多_PLUS')
+        self.actionOPI2.triggered.connect(lambda: self.parent.initIndicator(u"MA_螺纹多_PLUS"))
 
         ##成交量分析
         self.actionVOL = self.amountMenu.addAction(u'SHORTTERM_螺纹_多')

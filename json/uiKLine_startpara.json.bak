@@ -1,14 +1,19 @@
 [
   {
-    "MA_LONG_DAY": 114, 
+    "SHORT_TERM_SHOW_LIMIT": false, 
+    "SHORT_TERM_SHOW_FIRST": true, 
     "SIGNALSHOW": true, 
     "SHORT_TERM_SHOW": false, 
-    "STARTDAY": "20150105", 
-    "MA_SHORT_SHOW": false, 
+    "ENDDAY": "20181108", 
+    "STARTDAY": "20170104", 
+    "MA_SHORT_SHOW": true, 
     "MA_SHORT_DAY": 11, 
-    "KLINESHOW": true, 
+    "MA_LONG_DAY": 114, 
+    "ENDPOS": 2340, 
+    "StrategyName": "SHORTTERM_\u87ba\u7eb9_\u591a", 
     "MA_LONG_SHOW": true, 
-    "STARTPOS": 1402, 
-    "StrategyName": "SHORTTERM_\u87ba\u7eb9_\u591a"
+    "STARTPOS": 1891, 
+    "KLINESHOW": true, 
+    "SHORT_TERM_SHOW_ALL": false
   }
 ]

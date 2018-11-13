@@ -347,23 +347,37 @@ class KLineWidget(KeyWraper):
     KLINE_LOW = []
     KLINE_SHORT_TERM_LOW = []
     KLINE_SHORT_TERM_HIGH = []
-    KLINE_SHORT_TERM_LIST=[]
+    #KLINE_SHORT_TERM_LIST=[]
+    KLINE_SHORT_TERM_LIST_ALL=[]
+    KLINE_SHORT_TERM_LIST_FIRST=[]
+    KLINE_SHORT_TERM_LIST_LIMIT=[]
     listClose  = []
     listSig  = []
     listOpenInterest = []
     arrows   = []
-    KLINE_SHORT_TERM_LIST_arrows = []
+    #KLINE_SHORT_TERM_LIST_arrows = []
+    KLINE_SHORT_TERM_LIST_ALL_arrows = []
+    KLINE_SHORT_TERM_LIST_FIRST_arrows = []
+    KLINE_SHORT_TERM_LIST_LIMIT_arrows = []
     curves   = []
-    KLINE_SHORT_TERM_LIST_curves = []
+    #KLINE_SHORT_TERM_LIST_curves = []
+    KLINE_SHORT_TERM_LIST_ALL_curves = []
+    KLINE_SHORT_TERM_LIST_FIRST_curves = []
+    KLINE_SHORT_TERM_LIST_LIMIT_curves = []
     listSig_deal_DIRECTION  = []
     listSig_deal_OFFSET = []
     KLINE_show=True
     MA_SHORT_show=False
     MA_LONG_show=False
-    SHORT_TERM_SHOW=False
+
+    SHORT_TERM_SHOW=False    
+    SHORT_TERM_SHOW_FIRST=False
+    SHORT_TERM_SHOW_LIMIT=False
+    SHORT_TERM_SHOW_ALL=False
     signal_show=True    
     KLINE_CLOSE=[]
     start_date=[] #[20090327开始日期，列表的位置]
+    end_date=[]   #[20181127结束日期，结束的位置]    
 
 
     # 是否完成了历史数据的读取
@@ -400,8 +414,11 @@ class KLineWidget(KeyWraper):
         self.MA_LONG_real=[]
         self.start_time=[]
         self.MA_SHORT_show=False
-        self.MA_LONG_show=False   
-        self.SHORT_TERM_SHOW=False  
+        self.MA_LONG_show=False  
+        self.SHORT_TERM_SHOW=False
+        self.SHORT_TERM_SHOW_FIRST=False
+        self.SHORT_TERM_SHOW_LIMIT=False
+        self.SHORT_TERM_SHOW_ALL=False
         self.signal_show=False
 
         # 所有K线上信号图
@@ -515,6 +532,9 @@ class KLineWidget(KeyWraper):
         self.start_date_Line     = pg.InfiniteLine(angle=90, movable=False,pen=({'color': "w", 'width': 0.5})) 
         self.pwKL.addItem(self.start_date_Line)
         
+        self.end_date_Line     = pg.InfiniteLine(angle=90, movable=False,pen=({'color': "y", 'width': 0.5})) 
+        self.pwKL.addItem(self.end_date_Line)        
+        
         self.pwKL.setMinimumHeight(350)
         self.pwKL.setXLink('_'.join([self.windowId,'PlotOI']))
         self.pwKL.hideAxis('bottom')
@@ -564,7 +584,12 @@ class KLineWidget(KeyWraper):
     def plot_startdate(self,pos):
         """重画起始日期  """
         if self.initCompleted:
-            self.start_date_Line.setPos(pos) 
+            self.start_date_Line.setPos(pos)     
+    #----------------------------------------------------------------------   
+    def plot_enddate(self,pos):
+        """重画起始日期  """
+        if self.initCompleted:
+            self.end_date_Line.setPos(pos) 
     #----------------------------------------------------------------------
     def plotOI(self,xmin=0,xmax=-1):
         """重画持仓量子图"""
@@ -656,42 +681,117 @@ class KLineWidget(KeyWraper):
             self.pwKL.addItem(arrow)
             self.arrows.append(arrow)                
     #----------------------------------------------------------------------
-    def plotIndex (self):
+    def plotIndex_LIMIT (self):
         """画指标"""
         # 检查是否有数据
-        if len(self.KLINE_SHORT_TERM_LIST)==0 :
+        if len(self.KLINE_SHORT_TERM_LIST_LIMIT)==0 :
             return
-        for arrow in self.KLINE_SHORT_TERM_LIST_arrows:
+        for arrow in self.KLINE_SHORT_TERM_LIST_LIMIT_arrows:
             self.pwKL.removeItem(arrow)      
-        for curves in self.KLINE_SHORT_TERM_LIST_curves:
+        for curves in self.KLINE_SHORT_TERM_LIST_LIMIT_curves:
             self.pwKL.removeItem(curves)              
-        for i in range(len(self.KLINE_SHORT_TERM_LIST)):
-            if  self.KLINE_SHORT_TERM_LIST[i] == 1:
-                arrow = pg.ArrowItem(pos=(i, self.datas[i]['low']), size=7,tipAngle=55,tailLen=3,tailWidth=4, angle=90, brush=(255, 255, 0),pen=({'color': "y", 'width': 1}))   
+        for i in range(len(self.KLINE_SHORT_TERM_LIST_LIMIT)):
+            if  self.KLINE_SHORT_TERM_LIST_LIMIT[i] == 1:
+                arrow = pg.ArrowItem(pos=(i, self.datas[i]['low']), size=7,tipAngle=55,tailLen=3,tailWidth=4, angle=90, brush=(34, 139, 34),pen=({'color': "228B22", 'width': 1}))   
                 self.pwKL.addItem(arrow)
-                self.KLINE_SHORT_TERM_LIST_arrows.append(arrow)    
-            if  self.KLINE_SHORT_TERM_LIST[i] == 2:  
-                arrow = pg.ArrowItem(pos=(i, self.datas[i]['high']),size=7,tipAngle=55,tailLen=3,tailWidth=4 ,angle=-90, brush=(0, 255, 255),pen=({'color': "00FFFF", 'width': 1}))
+                self.KLINE_SHORT_TERM_LIST_LIMIT_arrows.append(arrow)    
+            if  self.KLINE_SHORT_TERM_LIST_LIMIT[i] == 2:  
+                arrow = pg.ArrowItem(pos=(i, self.datas[i]['high']),size=7,tipAngle=55,tailLen=3,tailWidth=4 ,angle=-90, brush=(34, 139, 34),pen=({'color': "228B22", 'width': 1}))
                 self.pwKL.addItem(arrow)
-                self.KLINE_SHORT_TERM_LIST_arrows.append(arrow)   
+                self.KLINE_SHORT_TERM_LIST_LIMIT_arrows.append(arrow)   
         last_x=-1  #上一个x
         last_y=-1  #上一个y   
         last_v=-1
-        for i in range(len(self.KLINE_SHORT_TERM_LIST)):
-            if  self.KLINE_SHORT_TERM_LIST[i] != 0 :
-                if    last_x!=-1 and last_y!=-1 and  last_v!=self.KLINE_SHORT_TERM_LIST[i] and\
-                    ((last_v == 1 and self.KLINE_SHORT_TERM_LIST[i] == 2) and self.KLINE_LOW[last_x]<self.KLINE_HIGH[i]) or\
-                    ((last_v == 2 and self.KLINE_SHORT_TERM_LIST[i] == 1) and self.KLINE_HIGH[last_x]>self.KLINE_LOW[i]):
-                        curve = pg.PlotCurveItem(x=np.array([last_x,i]),y=np.array([last_y,self.datas[i]['low'] if self.KLINE_SHORT_TERM_LIST[i]==1 else self.datas[i]['high']]),name='duo',pen=({'color': "y", 'width': 1}))                 
+        for i in range(len(self.KLINE_SHORT_TERM_LIST_LIMIT)):
+            if  self.KLINE_SHORT_TERM_LIST_LIMIT[i] != 0 :
+                if    last_x!=-1 and last_y!=-1 and  last_v!=self.KLINE_SHORT_TERM_LIST_LIMIT[i] and\
+                    ((last_v == 1 and self.KLINE_SHORT_TERM_LIST_LIMIT[i] == 2) and self.KLINE_LOW[last_x]<self.KLINE_HIGH[i]) or\
+                    ((last_v == 2 and self.KLINE_SHORT_TERM_LIST_LIMIT[i] == 1) and self.KLINE_HIGH[last_x]>self.KLINE_LOW[i]):
+                        curve = pg.PlotCurveItem(x=np.array([last_x,i]),y=np.array([last_y,self.datas[i]['low'] if self.KLINE_SHORT_TERM_LIST_LIMIT[i]==1 else self.datas[i]['high']]),name='duo',pen=({'color': "228B22", 'width': 1}))                 
                         self.pwKL.addItem(curve)          
-                        self.KLINE_SHORT_TERM_LIST_curves.append(curve)    
+                        self.KLINE_SHORT_TERM_LIST_LIMIT_curves.append(curve)    
                 last_x =i
-                if  self.KLINE_SHORT_TERM_LIST[i]  ==1 :  
+                if  self.KLINE_SHORT_TERM_LIST_LIMIT[i]  ==1 :  
                     last_y=self.datas[i]['low']     
-                elif self.KLINE_SHORT_TERM_LIST[i] ==2 :  
+                elif self.KLINE_SHORT_TERM_LIST_LIMIT[i] ==2 :  
                     last_y=self.datas[i]['high']   
-                last_v=self.KLINE_SHORT_TERM_LIST[i]
-    
+                last_v=self.KLINE_SHORT_TERM_LIST_LIMIT[i]
+                
+    #----------------------------------------------------------------------
+    def plotIndex_ALL (self):
+        """画指标"""
+        # 检查是否有数据
+        if len(self.KLINE_SHORT_TERM_LIST_ALL)==0 :
+            return
+        for arrow in self.KLINE_SHORT_TERM_LIST_ALL_arrows:
+            self.pwKL.removeItem(arrow)     
+        for curves in self.KLINE_SHORT_TERM_LIST_ALL_curves:
+            self.pwKL.removeItem(curves)              
+        for i in range(len(self.KLINE_SHORT_TERM_LIST_ALL)):
+            if  self.KLINE_SHORT_TERM_LIST_ALL[i] == 1:
+                arrow = pg.ArrowItem(pos=(i, self.datas[i]['low']), size=7,tipAngle=55,tailLen=3,tailWidth=4, angle=90, brush=(225, 0, 225),pen=({'color': "FF00FF", 'width': 1}))   
+                self.pwKL.addItem(arrow)
+                self.KLINE_SHORT_TERM_LIST_ALL_arrows.append(arrow)    
+            if  self.KLINE_SHORT_TERM_LIST_ALL[i] == 2:  
+                arrow = pg.ArrowItem(pos=(i, self.datas[i]['high']),size=7,tipAngle=55,tailLen=3,tailWidth=4 ,angle=-90, brush=(225, 0, 225),pen=({'color': "FF00FF", 'width': 1}))
+                self.pwKL.addItem(arrow)
+                self.KLINE_SHORT_TERM_LIST_ALL_arrows.append(arrow)   
+        last_x=-1  #上一个x
+        last_y=-1  #上一个y   
+        last_v=-1
+        for i in range(len(self.KLINE_SHORT_TERM_LIST_ALL)):
+            if  self.KLINE_SHORT_TERM_LIST_ALL[i] != 0 :
+                if    last_x!=- 1 and last_y!=-1                              and                                                \
+                    ((last_v == 1 and self.KLINE_SHORT_TERM_LIST_ALL[i] == 2) and self.KLINE_LOW[last_x]<self.KLINE_HIGH[i]) or  \
+                    ((last_v == 2 and self.KLINE_SHORT_TERM_LIST_ALL[i] == 1) and self.KLINE_HIGH[last_x]>self.KLINE_LOW[i]) or  \
+                    ((last_v == 1 and self.KLINE_SHORT_TERM_LIST_ALL[i] == 1))                                                or  \
+                    ((last_v == 2 and self.KLINE_SHORT_TERM_LIST_ALL[i] == 2))                                                    :
+                        curve = pg.PlotCurveItem(x=np.array([last_x,i]),y=np.array([last_y,self.datas[i]['low'] if self.KLINE_SHORT_TERM_LIST_ALL[i]==1 else self.datas[i]['high']]),name='duo',pen=({'color': "FF00FF", 'width': 1}))                 
+                        self.pwKL.addItem(curve)          
+                        self.KLINE_SHORT_TERM_LIST_ALL_curves.append(curve)    
+                last_x =i
+                if  self.KLINE_SHORT_TERM_LIST_ALL[i]  ==1 :  
+                    last_y=self.datas[i]['low']     
+                elif self.KLINE_SHORT_TERM_LIST_ALL[i] ==2 :  
+                    last_y=self.datas[i]['high']   
+                last_v=self.KLINE_SHORT_TERM_LIST_ALL[i]
+                
+    #----------------------------------------------------------------------
+    def plotIndex_FIRST (self):
+        """画指标"""
+        # 检查是否有数据
+        if len(self.KLINE_SHORT_TERM_LIST_FIRST)==0 :
+            return
+        for arrow in self.KLINE_SHORT_TERM_LIST_FIRST_arrows:
+            self.pwKL.removeItem(arrow)     
+        for curves in self.KLINE_SHORT_TERM_LIST_FIRST_curves:
+            self.pwKL.removeItem(curves)              
+        for i in range(len(self.KLINE_SHORT_TERM_LIST_FIRST)):
+            if  self.KLINE_SHORT_TERM_LIST_FIRST[i] == 1:
+                arrow = pg.ArrowItem(pos=(i, self.datas[i]['low']), size=7,tipAngle=55,tailLen=3,tailWidth=4, angle=90, brush=(225, 255, 0),pen=({'color': "FFFF00", 'width': 1}))   
+                self.pwKL.addItem(arrow)
+                self.KLINE_SHORT_TERM_LIST_FIRST_arrows.append(arrow)    
+            if  self.KLINE_SHORT_TERM_LIST_FIRST[i] == 2:  
+                arrow = pg.ArrowItem(pos=(i, self.datas[i]['high']),size=7,tipAngle=55,tailLen=3,tailWidth=4 ,angle=-90, brush=(139, 58, 58),pen=({'color': "8B3A3A", 'width': 1}))
+                self.pwKL.addItem(arrow)
+                self.KLINE_SHORT_TERM_LIST_FIRST_arrows.append(arrow)   
+        last_x=-1  #上一个x
+        last_y=-1  #上一个y   
+        last_v=-1
+        for i in range(len(self.KLINE_SHORT_TERM_LIST_FIRST)):
+            if  self.KLINE_SHORT_TERM_LIST_FIRST[i] != 0 :
+                if    last_x!=-1 and last_y!=-1 and  last_v!=self.KLINE_SHORT_TERM_LIST_FIRST[i] and\
+                    ((last_v == 1 and self.KLINE_SHORT_TERM_LIST_FIRST[i] == 2) and self.KLINE_LOW[last_x]<self.KLINE_HIGH[i]) or\
+                    ((last_v == 2 and self.KLINE_SHORT_TERM_LIST_FIRST[i] == 1) and self.KLINE_HIGH[last_x]>self.KLINE_LOW[i]):
+                        curve = pg.PlotCurveItem(x=np.array([last_x,i]),y=np.array([last_y,self.datas[i]['low'] if self.KLINE_SHORT_TERM_LIST_FIRST[i]==1 else self.datas[i]['high']]),name='duo',pen=({'color': "FFFF00", 'width': 1}))                 
+                        self.pwKL.addItem(curve)          
+                        self.KLINE_SHORT_TERM_LIST_FIRST_curves.append(curve)    
+                last_x =i
+                if  self.KLINE_SHORT_TERM_LIST_FIRST[i]  ==1 :  
+                    last_y=self.datas[i]['low']     
+                elif self.KLINE_SHORT_TERM_LIST_FIRST[i] ==2 :  
+                    last_y=self.datas[i]['high']   
+                last_v=self.KLINE_SHORT_TERM_LIST_FIRST[i]
     #----------------------------------------------------------------------
     def plot_after_runStrategy(self):
         """执行策略之后，根据显示状态重画其他指标"""
@@ -710,16 +810,38 @@ class KLineWidget(KeyWraper):
         else:
             self.MA_SHORTOI.hide()   
                                
-        if not self.SHORT_TERM_SHOW :
-            for arrow in self.KLINE_SHORT_TERM_LIST_arrows:
+        if not self.SHORT_TERM_SHOW_FIRST :
+            for arrow in self.KLINE_SHORT_TERM_LIST_FIRST_arrows:
                 arrow.show()  
-            for curve in self.KLINE_SHORT_TERM_LIST_curves:
+            for curve in self.KLINE_SHORT_TERM_LIST_FIRST_curves:
                 curve.show()
         else:
-            for arrow in self.KLINE_SHORT_TERM_LIST_arrows:
+            for arrow in self.KLINE_SHORT_TERM_LIST_FIRST_arrows:
                 arrow.hide()  
-            for curve in self.KLINE_SHORT_TERM_LIST_curves:
-                curve.hide()        
+            for curve in self.KLINE_SHORT_TERM_LIST_FIRST_curves:
+                curve.hide()       
+                
+        if not self.SHORT_TERM_SHOW_LIMIT :
+            for arrow in self.KLINE_SHORT_TERM_LIST_LIMIT_arrows:
+                arrow.show()  
+            for curve in self.KLINE_SHORT_TERM_LIST_LIMIT_curves:
+                curve.show()
+        else:
+            for arrow in self.KLINE_SHORT_TERM_LIST_LIMIT_arrows:
+                arrow.hide()  
+            for curve in self.KLINE_SHORT_TERM_LIST_LIMIT_curves:
+                curve.hide()       
+                
+        if not self.SHORT_TERM_SHOW_ALL :
+            for arrow in self.KLINE_SHORT_TERM_LIST_ALL_arrows:
+                arrow.show()  
+            for curve in self.KLINE_SHORT_TERM_LIST_ALL_curves:
+                curve.show()
+        else:
+            for arrow in self.KLINE_SHORT_TERM_LIST_ALL_arrows:
+                arrow.hide()  
+            for curve in self.KLINE_SHORT_TERM_LIST_ALL_curves:
+                curve.hide()       
     
     #----------------------------------------------------------------------
     def updateAll(self):
@@ -763,6 +885,7 @@ class KLineWidget(KeyWraper):
         self.pwVol.setLimits(xMin=xMin,xMax=xMax)
         self.plotKline(redraw,xMin,xMax)                       # K线图
         self.plot_startdate(self.start_date[1])
+        self.plot_enddate(self.end_date[1])
         self.plotVol(redraw,xMin,xMax)                         # K线副图，成交量
         self.plotOI(0,len(self.datas))                         # K线副图，持仓量
         self.refresh()
@@ -929,13 +1052,23 @@ class KLineWidget(KeyWraper):
                 setting['MA_LONG_SHOW']= not(self.MA_LONG_show)
             self.rewrite_json_file(klinesettings)
         elif cmp(data, u'设为起始日期') == 0 :
-            self.plot_startdate(self.crosshair.cur_date()[1])
-            self.start_date = self.crosshair.cur_date()
-            klinesettings= self.load_json_file()
-            for setting in klinesettings:
-                setting['STARTDAY']= self.start_date[0]
-                setting['STARTPOS']= self.start_date[1]
-            self.rewrite_json_file(klinesettings)
+            if self.crosshair.cur_date()[1] < self.end_date[1]:
+                self.plot_startdate(self.crosshair.cur_date()[1])
+                self.start_date = self.crosshair.cur_date()
+                klinesettings= self.load_json_file()
+                for setting in klinesettings:
+                    setting['STARTDAY']= self.start_date[0]
+                    setting['STARTPOS']= self.start_date[1]
+                self.rewrite_json_file(klinesettings)
+        elif cmp(data, u'设为结束日期') == 0 :
+            if self.crosshair.cur_date()[1] > self.start_date[1]:
+                self.plot_enddate(self.crosshair.cur_date()[1])
+                self.end_date = self.crosshair.cur_date()
+                klinesettings= self.load_json_file()
+                for setting in klinesettings:
+                    setting['ENDDAY']= self.end_date[0]
+                    setting['ENDPOS']= self.end_date[1]
+                self.rewrite_json_file(klinesettings)
         elif cmp(data, u'MA_螺纹多_PLUS') == 0 :
             engine=strategyDoubleMa_calculateDailyResult_init()
             initday = strategyDoubleMa_get_strategy_init_days(engine)  #MA_螺纹多_PLUS策略需要比起始时间多100天的预处理量
@@ -952,38 +1085,73 @@ class KLineWidget(KeyWraper):
                 setting['MA_SHORT_SHOW']= not(self.MA_SHORT_show)
                 setting['StrategyName']= 'MA_螺纹多_PLUS'
             self.rewrite_json_file(klinesettings)  
-        elif cmp(data, u'SHORT TERM') == 0 :
-            if len(self.KLINE_SHORT_TERM_LIST) ==0:
-                self.short_term_list()
-                self.plotIndex()
-                index_settings= self.load_Index_Setting()
-                for setting in index_settings:                
-                    setting['SHORT_TERM_INDEX']= self.KLINE_SHORT_TERM_LIST
-                self.rewrite_Index_json_file(index_settings)                
-            if self.SHORT_TERM_SHOW :
-                for arrow in self.KLINE_SHORT_TERM_LIST_arrows:
+        elif cmp(data, u'SHORT TERM(Limit)') == 0 :
+            if len(self.KLINE_SHORT_TERM_LIST_LIMIT) ==0:
+                self.short_term_list_Limit()
+                self.plotIndex_LIMIT()
+            if self.SHORT_TERM_SHOW_LIMIT :
+                for arrow in self.KLINE_SHORT_TERM_LIST_LIMIT_arrows:
                     arrow.show()  
-                for curve in self.KLINE_SHORT_TERM_LIST_curves:
+                for curve in self.KLINE_SHORT_TERM_LIST_LIMIT_curves:
                     curve.show()
-                self.SHORT_TERM_SHOW =False
+                self.SHORT_TERM_SHOW_LIMIT =False
             else:
-                for arrow in self.KLINE_SHORT_TERM_LIST_arrows:
+                for arrow in self.KLINE_SHORT_TERM_LIST_LIMIT_arrows:
                     arrow.hide()  
-                for curve in self.KLINE_SHORT_TERM_LIST_curves:
+                for curve in self.KLINE_SHORT_TERM_LIST_LIMIT_curves:
                     curve.hide()
-                self.SHORT_TERM_SHOW =True            
+                self.SHORT_TERM_SHOW_LIMIT =True             
+        elif cmp(data, u'SHORT TERM(First)') == 0 :
+            if len(self.KLINE_SHORT_TERM_LIST_FIRST) ==0:
+                self.short_term_list_First()
+                self.plotIndex_FIRST()
+                index_settings= self.load_First_Index_Setting()
+                for setting in index_settings:                
+                    setting['SHORT_TERM_INDEX']= self.KLINE_SHORT_TERM_LIST_FIRST
+                self.rewrite_First_Index_json_file(index_settings)      
+            if self.SHORT_TERM_SHOW_FIRST :
+                for arrow in self.KLINE_SHORT_TERM_LIST_FIRST_arrows:
+                    arrow.show()  
+                for curve in self.KLINE_SHORT_TERM_LIST_FIRST_curves:
+                    curve.show()
+                self.SHORT_TERM_SHOW_FIRST =False
+            else:
+                for arrow in self.KLINE_SHORT_TERM_LIST_FIRST_arrows:
+                    arrow.hide()  
+                for curve in self.KLINE_SHORT_TERM_LIST_FIRST_curves:
+                    curve.hide()
+                self.SHORT_TERM_SHOW_FIRST =True            
             klinesettings= self.load_json_file()
             for setting in klinesettings:
-                setting['SHORT_TERM_SHOW']= not(self.SHORT_TERM_SHOW)
-            self.rewrite_json_file(klinesettings)            
-    
+                setting['SHORT_TERM_SHOW_FIRST']= not(self.SHORT_TERM_SHOW_FIRST)
+            self.rewrite_json_file(klinesettings)   
+        elif cmp(data, u'SHORT TERM(All)') == 0 :
+            if len(self.KLINE_SHORT_TERM_LIST_ALL) ==0:
+                self.short_term_list_All()
+                self.plotIndex_ALL()          
+                index_settings= self.load_All_Index_Setting()
+                for setting in index_settings:                
+                    setting['SHORT_TERM_INDEX']= self.KLINE_SHORT_TERM_LIST_ALL
+                self.rewrite_All_Index_json_file(index_settings)   
+            if self.SHORT_TERM_SHOW_ALL :
+                for arrow in self.KLINE_SHORT_TERM_LIST_ALL_arrows:
+                    arrow.show()  
+                for curve in self.KLINE_SHORT_TERM_LIST_ALL_curves:
+                    curve.show()
+                self.SHORT_TERM_SHOW_ALL =False
+            else:
+                for arrow in self.KLINE_SHORT_TERM_LIST_ALL_arrows:
+                    arrow.hide()  
+                for curve in self.KLINE_SHORT_TERM_LIST_ALL_curves:
+                    curve.hide()
+                self.SHORT_TERM_SHOW_ALL =True              
         elif cmp(data, u'SHORTTERM_螺纹_多') == 0 :             
             reload(ST)
             engine=ST.calculateDailyResult_init(True)            
             initday = ST.get_strategy_init_days(engine)  
             if self.start_date[1] < initday:
                 initday = 0 
-            ST.calculateDailyResult_to_CSV(engine,dt.datetime.strftime(pd.to_datetime(pd.to_datetime(self.datas[self.start_date[1]-initday]['datetime'],)),'%Y%m%d') ,self.start_date[1],os.path.abspath('.\data\dailyresult\RB9999.csv'))
+            ST.calculateDailyResult_to_CSV(engine,dt.datetime.strftime(pd.to_datetime(pd.to_datetime(self.datas[self.start_date[1]-initday]['datetime'],)),'%Y%m%d') ,self.start_date[1],dt.datetime.strftime(pd.to_datetime(pd.to_datetime(self.datas[self.end_date[1]]['datetime'],)),'%Y%m%d') ,self.end_date[1],os.path.abspath('.\data\dailyresult\RB9999.csv'))
             
             self.clearSigData()
             self.loadData_listsig(pd.DataFrame.from_csv('data\dailyresult\RB9999.csv'))
@@ -1008,7 +1176,7 @@ class KLineWidget(KeyWraper):
             initday = ST.get_strategy_init_days(engine)  
             if self.start_date[1] < initday:
                 initday = 0 
-            ST.calculateDailyResult_to_CSV(engine,dt.datetime.strftime(pd.to_datetime(pd.to_datetime(self.datas[self.start_date[1]-initday]['datetime'],)),'%Y%m%d') ,self.start_date[1],os.path.abspath('.\data\dailyresult\RB9999.csv'))
+            ST.calculateDailyResult_to_CSV(engine,dt.datetime.strftime(pd.to_datetime(pd.to_datetime(self.datas[self.start_date[1]-initday]['datetime'],)),'%Y%m%d') ,self.start_date[1],dt.datetime.strftime(pd.to_datetime(pd.to_datetime(self.datas[self.end_date[1]]['datetime'],)),'%Y%m%d') ,self.end_date[1],os.path.abspath('.\data\dailyresult\RB9999.csv'))
             
             self.clearSigData()
             self.loadData_listsig(pd.DataFrame.from_csv('data\dailyresult\RB9999.csv'))
@@ -1032,7 +1200,7 @@ class KLineWidget(KeyWraper):
             initday = STOV.get_strategy_init_days(engine)  
             if self.start_date[1] < initday:
                 initday = 0 
-            STOV.calculateDailyResult_to_CSV(engine,dt.datetime.strftime(pd.to_datetime(pd.to_datetime(self.datas[self.start_date[1]-initday]['datetime'],)),'%Y%m%d') ,self.start_date[1],os.path.abspath('.\data\dailyresult\RB9999.csv'))
+            STOV.calculateDailyResult_to_CSV(engine,dt.datetime.strftime(pd.to_datetime(pd.to_datetime(self.datas[self.start_date[1]-initday]['datetime'],)),'%Y%m%d') ,self.start_date[1],dt.datetime.strftime(pd.to_datetime(pd.to_datetime(self.datas[self.end_date[1]]['datetime'],)),'%Y%m%d') ,self.end_date[1],os.path.abspath('.\data\dailyresult\RB9999.csv'))
             
             self.clearSigData()
             self.loadData_listsig(pd.DataFrame.from_csv('data\dailyresult\RB9999.csv'))
@@ -1252,25 +1420,29 @@ class KLineWidget(KeyWraper):
                 for setting in initsettings:
                     self.start_date.append(setting[u'STARTDAY'])
                     self.start_date.append(setting[u'STARTPOS'])
+                    self.end_date.append(setting[u'ENDDAY'])
+                    self.end_date.append(setting[u'ENDPOS'])
                     self.MA_LONG_DAY        = setting[u'MA_LONG_DAY']
                     self.MA_SHORT_DAY       = setting[u'MA_SHORT_DAY']
                     self.MA_SHORT_show= setting[u'MA_SHORT_SHOW']
                     self.MA_LONG_show= setting[u'MA_LONG_SHOW']     
                     self.KLINE_show= setting[u'KLINESHOW']   
                     self.signal_show = setting[u'SIGNALSHOW']  
-                    self.SHORT_TERM_SHOW = setting[u'SHORT_TERM_SHOW']  
+                    self.SHORT_TERM_SHOW_FIRST = setting[u'SHORT_TERM_SHOW_FIRST']  
                     self.StrategyName    =setting[u'StrategyName']
         except :
             f.close()
             self.start_date.append("20090327")
             self.start_date.append(0)
+            self.start_date.append("20090330")
+            self.start_date.append(1)
             self.MA_LONG_DAY        = 22
             self.MA_SHORT_DAY       = 92
             self.MA_SHORT_show= True
             self.MA_LONG_show = True    
             self.KLINE_show= True
             self.signal_show=True
-            self.SHORT_TERM_SHOW=True
+            self.SHORT_TERM_SHOW_FIRST=True
             self.StrategyName    ='None'
             print "Error: uiKLine_startpara.josn没有找到文件或读取文件失败"        
         
@@ -1287,31 +1459,51 @@ class KLineWidget(KeyWraper):
                 f.close()      
         except:
             f.close()
-            josndata = [ { u'STARTDAY' : '20090327', u'STARTPOS' : 0, u'MA_LONG_DAY' : 92, u'MA_SHORT_DAY' : 22, u'MA_SHORT_SHOW' : True,u'MA_LONG_SHOW':True,u'KLINESHOW':True,u'SIGNALSHOW':True,u'SHORT_TERM_SHOW':True,u'StrategyName':'None'} ]
+            josndata = [ { u'STARTDAY' : '20090327', u'STARTPOS' : 0,u'STARTDAY' : '20090330', u'STARTPOS' : 1, u'MA_LONG_DAY' : 92, u'MA_SHORT_DAY' : 22, u'MA_SHORT_SHOW' : True,u'MA_LONG_SHOW':True,u'KLINESHOW':True,u'SIGNALSHOW':True,u'SHORT_TERM_SHOW_FIRST':True,u'StrategyName':'None'} ]
             self.rewrite_json_file(josndata)
             with open(u'json\\uiKLine_startpara.json') as f:
                 initsettings= json.load(f)
             f.close()               
         return initsettings
     #----------------------------------------------------------------------
-    def load_Index_Setting(self):
+    def load_First_Index_Setting(self):
         """把相关指标从json文件读取"""
         try:
-            with open(u'json\\uiKLine_index.json') as f:
+            with open(u'json\\uiKLine_first_index.json') as f:
                 index_settings= json.load(f)
                 f.close()      
         except:
             f.close()
             josndata = [ { u'SHORT_TERM_INDEX' : [0,0]} ]
             self.rewrite_Index_json_file(josndata)
-            with open(u'json\\uiKLine_index.json') as f:
+            with open(u'json\\uiKLine_first_index.json') as f:
+                initsettings= json.load(f)
+            f.close()               
+        return index_settings
+    
+    def load_All_Index_Setting(self):
+        """把相关指标从json文件读取"""
+        try:
+            with open(u'json\\uiKLine_first_index.json') as f:
+                index_settings= json.load(f)
+                f.close()      
+        except:
+            f.close()
+            josndata = [ { u'SHORT_TERM_INDEX' : [0,0]} ]
+            self.rewrite_Index_json_file(josndata)
+            with open(u'json\\uiKLine_first_index.json') as f:
                 initsettings= json.load(f)
             f.close()               
         return index_settings
     #----------------------------------------------------------------------
-    def rewrite_Index_json_file(self,json_data):
+    def rewrite_First_Index_json_file(self,json_data):
         """把相关指标写入json文件"""
-        with open(u'json\\uiKLine_index.json', 'w') as f:
+        with open(u'json\\uiKLine_first_index.json', 'w') as f:
+            json.dump(json_data,f)
+        f.close()
+    def rewrite_All_Index_json_file(self,json_data):
+        """把相关指标写入json文件"""
+        with open(u'json\\uiKLine_all_index.json', 'w') as f:
             json.dump(json_data,f)
         f.close()
     #----------------------------------------------------------------------
@@ -1380,57 +1572,57 @@ class KLineWidget(KeyWraper):
         return r
     #----------------------------------------------------------------------        
     def short_term_high(self,kline_value_low,kline_value_high):
-        '''短期低点'''      
+        '''短期高点'''      
         r_low= self.calculate_high(kline_value_low)
         r_high= self.calculate_high(kline_value_high)
         r = np.logical_and(r_low,r_high)  
         return r
     #----------------------------------------------------------------------  
-    def short_term_list(self):
-        '''短期低点列表'''
+    def short_term_list_Limit(self):
+        '''短期低点列表 --- 选择连续点的最大和最小值'''
         self.KLINE_SHORT_TERM_LOW = self.short_term_low(self.KLINE_LOW,self.KLINE_HIGH)    
         self.KLINE_SHORT_TERM_HIGH = self.short_term_high(self.KLINE_LOW,self.KLINE_HIGH)     
         
         self.KLINE_SHORT_TERM_LOW = [1 if i==True else 0 for i in self.KLINE_SHORT_TERM_LOW] #[1= 低点 0=普通点]
         self.KLINE_SHORT_TERM_HIGH =[2 if i==True else 0 for i in self.KLINE_SHORT_TERM_HIGH]#[2= 高点 0=普通点]
-        self.KLINE_SHORT_TERM_LIST = (np.array(self.KLINE_SHORT_TERM_LOW) + np.array(self.KLINE_SHORT_TERM_HIGH)).tolist()     
+        self.KLINE_SHORT_TERM_LIST_LIMIT = (np.array(self.KLINE_SHORT_TERM_LOW) + np.array(self.KLINE_SHORT_TERM_HIGH)).tolist()     
         lowmin_time_int = -1 
         lowmin          = -1
         highmax_time_int = -1 
         highmax          = -1    
-        for i in range(0,len(self.KLINE_SHORT_TERM_LIST)):
+        for i in range(0,len(self.KLINE_SHORT_TERM_LIST_LIMIT)):
             #1 获得当前点
-            if self.KLINE_SHORT_TERM_LIST[i] ==  1 or self.KLINE_SHORT_TERM_LIST[i] ==  2:
-                if   self.KLINE_SHORT_TERM_LIST[i] ==  1:
+            if self.KLINE_SHORT_TERM_LIST_LIMIT[i] ==  1 or self.KLINE_SHORT_TERM_LIST_LIMIT[i] ==  2:
+                if   self.KLINE_SHORT_TERM_LIST_LIMIT[i] ==  1:
                     lowmin          = self.KLINE_LOW[i] 
                     lowmin_time_int = i
-                elif self.KLINE_SHORT_TERM_LIST[i] ==  2:
+                elif self.KLINE_SHORT_TERM_LIST_LIMIT[i] ==  2:
                     highmax          = self.KLINE_HIGH[i] 
                     highmax_time_int = i
                 #2 判断当前点是高或者低
-                for j in range(i+1,len(self.KLINE_SHORT_TERM_LIST)):
+                for j in range(i+1,len(self.KLINE_SHORT_TERM_LIST_LIMIT)):
                     #3 从当前点出发向后查找，需要知道下一个的高低点是不是同类型 
                     #->是同类型，则注重点放到最大值或者最小值上
                     #  和最大值比较 比最大值小置0，比最大值大把最大值置0
                     #  和最小值比较 同理
                     #->不是同类型，要遵循高点大于低点，低点小于高低的原则 不满足置0
-                    if   self.KLINE_SHORT_TERM_LIST[j] ==  1 and self.KLINE_SHORT_TERM_LIST[i] == self.KLINE_SHORT_TERM_LIST[j]:
+                    if   self.KLINE_SHORT_TERM_LIST_LIMIT[j] ==  1 and self.KLINE_SHORT_TERM_LIST_LIMIT[i] == self.KLINE_SHORT_TERM_LIST_LIMIT[j]:
                         if self.KLINE_LOW[j] < lowmin:
-                            self.KLINE_SHORT_TERM_LIST[lowmin_time_int]=0
+                            self.KLINE_SHORT_TERM_LIST_LIMIT[lowmin_time_int]=0
                             lowmin = self.KLINE_LOW[j] 
                             lowmin_time_int = j
                         else:
-                            self.KLINE_SHORT_TERM_LIST[j] = 0  
-                    elif self.KLINE_SHORT_TERM_LIST[j] ==  2 and self.KLINE_SHORT_TERM_LIST[i] == self.KLINE_SHORT_TERM_LIST[j]:
+                            self.KLINE_SHORT_TERM_LIST_LIMIT[j] = 0  
+                    elif self.KLINE_SHORT_TERM_LIST_LIMIT[j] ==  2 and self.KLINE_SHORT_TERM_LIST_LIMIT[i] == self.KLINE_SHORT_TERM_LIST_LIMIT[j]:
                         if self.KLINE_HIGH[j] > highmax:
-                            self.KLINE_SHORT_TERM_LIST[highmax_time_int]=0
+                            self.KLINE_SHORT_TERM_LIST_LIMIT[highmax_time_int]=0
                             highmax = self.KLINE_LOW[j] 
                             highmax_time_int = j
                         else:
-                            self.KLINE_SHORT_TERM_LIST[j] = 0                         
-                    if self.KLINE_SHORT_TERM_LIST[j] !=  0 and self.KLINE_SHORT_TERM_LIST[i] != self.KLINE_SHORT_TERM_LIST[j]:
-                        if (self.KLINE_SHORT_TERM_LIST[i] == 1 and self.KLINE_LOW[i]  < self.KLINE_HIGH[j]) or  \
-                           (self.KLINE_SHORT_TERM_LIST[i] == 2 and self.KLINE_HIGH[i] > self.KLINE_LOW[j]):
+                            self.KLINE_SHORT_TERM_LIST_LIMIT[j] = 0                         
+                    if self.KLINE_SHORT_TERM_LIST_LIMIT[j] !=  0 and self.KLINE_SHORT_TERM_LIST_LIMIT[i] != self.KLINE_SHORT_TERM_LIST_LIMIT[j]:
+                        if (self.KLINE_SHORT_TERM_LIST_LIMIT[i] == 1 and self.KLINE_LOW[i]  < self.KLINE_HIGH[j]) or  \
+                           (self.KLINE_SHORT_TERM_LIST_LIMIT[i] == 2 and self.KLINE_HIGH[i] > self.KLINE_LOW[j]):
                             pass
                         else:
                             pass
@@ -1442,7 +1634,54 @@ class KLineWidget(KeyWraper):
                         break
             else:
                 continue
+    #----------------------------------------------------------------------  
+    def short_term_list_First(self):
+        '''短期低点列表 --- 选择连续点的第一个大值和小值'''
+        self.KLINE_SHORT_TERM_LOW = self.short_term_low(self.KLINE_LOW,self.KLINE_HIGH)    
+        self.KLINE_SHORT_TERM_HIGH = self.short_term_high(self.KLINE_LOW,self.KLINE_HIGH)     
         
+        self.KLINE_SHORT_TERM_LOW = [1 if i==True else 0 for i in self.KLINE_SHORT_TERM_LOW] #[1= 低点 0=普通点]
+        self.KLINE_SHORT_TERM_HIGH =[2 if i==True else 0 for i in self.KLINE_SHORT_TERM_HIGH]#[2= 高点 0=普通点]
+        self.KLINE_SHORT_TERM_LIST_FIRST = (np.array(self.KLINE_SHORT_TERM_LOW) + np.array(self.KLINE_SHORT_TERM_HIGH)).tolist()    
+        
+        for i in range(0,len(self.KLINE_SHORT_TERM_LIST_FIRST)):
+            #1 获得当前点
+            if self.KLINE_SHORT_TERM_LIST_FIRST[i] ==  1 or self.KLINE_SHORT_TERM_LIST_FIRST[i] ==  2:
+                #2 判断当前点是高或者低
+                for j in range(i+1,len(self.KLINE_SHORT_TERM_LIST_FIRST)):
+                    #3 从当前点出发向后查找，需要知道下一个的高低点是不是同类型 
+                    #->是同类型，只保留第一个，其余置0全部
+                    #->不是同类型，那也就是第一个点，保留。但是要遵循高点大于低点，低点小于高点的原则 不满足置0
+                    if   self.KLINE_SHORT_TERM_LIST_FIRST[j] ==  1 and self.KLINE_SHORT_TERM_LIST_FIRST[i] == 1:
+                        self.KLINE_SHORT_TERM_LIST_FIRST[j] = 0 
+                        continue
+                    elif self.KLINE_SHORT_TERM_LIST_FIRST[j] ==  2 and self.KLINE_SHORT_TERM_LIST_FIRST[i] == 2:
+                        self.KLINE_SHORT_TERM_LIST_FIRST[j] = 0     
+                        continue
+                    elif self.KLINE_SHORT_TERM_LIST_FIRST[j] ==  1 and self.KLINE_SHORT_TERM_LIST_FIRST[i] == 2 :
+                        if self.KLINE_LOW[j] > self.KLINE_HIGH[i] :
+                            self.KLINE_SHORT_TERM_LIST_FIRST[j] = 0  
+                        i=j
+                        break
+                    elif self.KLINE_SHORT_TERM_LIST_FIRST[j] ==  2 and self.KLINE_SHORT_TERM_LIST_FIRST[i] == 1 :
+                        if self.KLINE_HIGH[j] < self.KLINE_LOW[i] :
+                            self.KLINE_SHORT_TERM_LIST_FIRST[j] = 0  
+                        i=j
+                        break
+                    else:
+                        continue
+            else:
+                continue
+            
+    #----------------------------------------------------------------------  
+    def short_term_list_All(self):
+        '''短期低点列表 --- 选择 所有点'''
+        self.KLINE_SHORT_TERM_LOW = self.short_term_low(self.KLINE_LOW,self.KLINE_HIGH)    
+        self.KLINE_SHORT_TERM_HIGH = self.short_term_high(self.KLINE_LOW,self.KLINE_HIGH)     
+        
+        self.KLINE_SHORT_TERM_LOW      = [1 if i==True else 0 for i in self.KLINE_SHORT_TERM_LOW] #[1= 低点 0=普通点]
+        self.KLINE_SHORT_TERM_HIGH     = [2 if i==True else 0 for i in self.KLINE_SHORT_TERM_HIGH]#[2= 高点 0=普通点]
+        self.KLINE_SHORT_TERM_LIST_ALL = (np.array(self.KLINE_SHORT_TERM_LOW) + np.array(self.KLINE_SHORT_TERM_HIGH)).tolist()            
 ########################################################################
 # 功能测试
 ########################################################################
@@ -1467,7 +1706,9 @@ if __name__ == '__main__':
     ui.initIndicator(u'MA SHORT')
     ui.initIndicator(u'MA LONG')
     ui.initIndicator(u'KLINE')
-    ui.initIndicator(u'SHORT TERM')
+    ui.initIndicator(u'SHORT TERM(First)')
+    ui.initIndicator(u'SHORT TERM(All)')
+    ui.initIndicator(u'SHORT TERM(Limit)')
     if ui.signal_show == True :
         ui.initIndicator(u'信号显示')
     else:
