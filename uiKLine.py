@@ -28,17 +28,15 @@ path.append('F:\\vnpy-1.9.0\\examples\\CtaBacktesting')
 reload(sys)
 sys.setdefaultencoding('utf-8')          
 
-from runBacktesting_WH import calculateDailyResult_to_CSV as strategyDoubleMa_rb9999DailyResult
-from runBacktesting_WH import get_strategy_init_days as strategyDoubleMa_get_strategy_init_days
-from runBacktesting_WH import calculateDailyResult_init as strategyDoubleMa_calculateDailyResult_init
+#from runBacktesting_WH import calculateDailyResult_to_CSV as strategyDoubleMa_rb9999DailyResult
+#from runBacktesting_WH import get_strategy_init_days as strategyDoubleMa_get_strategy_init_days
+#from runBacktesting_WH import calculateDailyResult_init as strategyDoubleMa_calculateDailyResult_init
 
-#from runBacktesting_ShortTermStrategy import calculateDailyResult_to_CSV as ShortTermStrategy_rb9999DailyResult
-#from runBacktesting_ShortTermStrategy import get_strategy_init_days as ShortTermStrategy_get_strategy_init_days
-#from runBacktesting_ShortTermStrategy import calculateDailyResult_init as ShortTermStrategy_calculateDailyResult_init
 
 import importlib
-import runBacktesting_ShortTermStrategy as ST
+import runBacktesting_ShortTermStrategy          as ST
 import runBacktesting_ShortTermStrategy_Overhigh as STOV
+import runBacktesting_WH                         as DMA
 # 字符串转换
 #---------------------------------------------------------------------------------------
 try:
@@ -1036,7 +1034,7 @@ class KLineWidget(KeyWraper):
             for setting in klinesettings:
                 setting['MA_SHORT_SHOW']= not(self.MA_SHORT_show)
             self.rewrite_json_file(klinesettings)
-        elif cmp(data, u'MA LONG') == 0 :
+        elif cmp(data,u'MA LONG') == 0 :
             if len(self.MA_LONG_real) == 0:
                 self.MA_LONG_real = ta.MA(np.array(self.KLINE_CLOSE), timeperiod=self.MA_LONG_DAY, matype=0).tolist()
                 self.crosshair.ma_l_values = self.MA_LONG_real 
@@ -1069,21 +1067,38 @@ class KLineWidget(KeyWraper):
                     setting['ENDDAY']= self.end_date[0]
                     setting['ENDPOS']= self.end_date[1]
                 self.rewrite_json_file(klinesettings)
-        elif cmp(data, u'MA_螺纹多_PLUS') == 0 :
-            engine=strategyDoubleMa_calculateDailyResult_init()
-            initday = strategyDoubleMa_get_strategy_init_days(engine)  #MA_螺纹多_PLUS策略需要比起始时间多100天的预处理量
+        elif cmp(data, u'MA_螺纹空_PLUS') == 0 :
+            reload(DMA)
+            engine  = DMA.calculateDailyResult_init() 
+            initday = DMA.get_strategy_init_days(engine)  
             if self.start_date[1] < initday:
                 initday = 0 
-            strategyDoubleMa_rb9999DailyResult(engine,dt.datetime.strftime(pd.to_datetime(pd.to_datetime(self.datas[self.start_date[1]-initday]['datetime'],)),'%Y%m%d') ,os.path.abspath('.\data\dailyresult\RB9999.csv'))
+            DMA.calculateDailyResult_to_CSV(engine,dt.datetime.strftime(pd.to_datetime(pd.to_datetime(self.datas[self.start_date[1]-initday]['datetime'],)),'%Y%m%d'),self.start_date[1],dt.datetime.strftime(pd.to_datetime(pd.to_datetime(self.datas[self.end_date[1]]['datetime'],)),'%Y%m%d'),self.end_date[1],os.path.abspath('.\data\dailyresult\RB9999.csv'))
             self.clearSigData()
             self.loadData_listsig(pd.DataFrame.from_csv('data\dailyresult\RB9999.csv'))
             self.plotMark()   
-            self.plot_after_runStrategy()            
-            self.KLtitle.setText('RB9999'+'   '+'MA_螺纹多_PLUS' ,size='10pt',color='FFFF00')
+            self.plot_after_runStrategy()    
+            
+            self.MA_SHORT_DAY  = DMA.get_strategy_SK_A_LONG(engine)    
+            self.MA_SHORT_real = ta.MA(np.array(self.KLINE_CLOSE), timeperiod=self.MA_SHORT_DAY, matype=0).tolist()
+            self.crosshair.ma_s_values = self.MA_SHORT_real 
+            self.plotMA_SHORT()
+            self.MA_SHORTOI.show() 
+            self.MA_SHORT_show =True  
+            
+            self.MA_LONG_DAY  = DMA.get_strategy_SK_E_LONG(engine)    
+            self.MA_LONG_real = ta.MA(np.array(self.KLINE_CLOSE), timeperiod=self.MA_LONG_DAY, matype=0).tolist()
+            self.crosshair.ma_l_values = self.MA_LONG_real 
+            self.plotMA_LONG()
+            self.MA_LONGOI.show() 
+            self.MA_LONG_show =True  
+            
+            
+            self.KLtitle.setText('RB9999'+'   '+'MA_螺纹空_PLUS' ,size='10pt',color='g')
             klinesettings= self.load_json_file()
             for setting in klinesettings:
                 setting['MA_SHORT_SHOW']= not(self.MA_SHORT_show)
-                setting['StrategyName']= 'MA_螺纹多_PLUS'
+                setting['StrategyName']= 'MA_螺纹空_PLUS'
             self.rewrite_json_file(klinesettings)  
         elif cmp(data, u'SHORT TERM(Limit)') == 0 :
             if len(self.KLINE_SHORT_TERM_LIST_LIMIT) ==0:
@@ -1513,55 +1528,56 @@ class KLineWidget(KeyWraper):
     def calculate_low(self,kline_value):
         """计算低点"""
         '''伪代码
-        xb = np.array([0,5,6,7,4,5,1,2,8,9])  # 原始              三个值的第1个
-        xm = np.array([5,6,7,4,5,1,2,8,9,0])  # 左移一位后面补0    三个值的第2个
-        xa = np.array([6,7,4,5,1,2,8,9,0,0])  # 左移二位后面补0    三个值的第3个
-        #第2个小于第一个和第三个 则是短期低点
-        #第2个大于第一个和第三个 则是短期高点
-        r = np.logical_and(xm<xa,xm<xb)
-        r=np.insert(r,0,False) 
-        r=np.delete(r,r.shape[0]-1) 
-        for ii in range(0,len(self.KLINE_OPEN)):
-            if result.tolist()[ii] == True: 
-                print(self.KLINE_DATE[ii],result.tolist()[ii])   
+        xb = np.array([0,5,6,7,4,5,1,2,8,1])  # 原始              三个值的第1个
+        xm = np.array([5,6,7,4,5,1,2,8,1,0])  # 左移一位后面补0    三个值的第2个
+        xa = np.array([6,7,4,5,1,2,8,1,0,0]  # 左移二位后面补0    三个值的第3个
+        result =      [F,F,F,T,F,T,F,F,F,F]   # result = np.logical_and(xm<xb,xm<xa)
+        result =      [F,F,F,F,T,F,T,F,F,F,F] # result=np.insert(result,0,False) 
+        result =      [F,F,F,F,T,F,T,F,F,F]   # result=np.delete(result,result.shape[0]-1) 
+        
         '''  
         v_b = np.array(kline_value)         
         v_m = np.delete(v_b,0) 
-        v_m = np.insert(v_m,v_m.shape[0]-1,0) 
+        v_m = np.insert(v_m,v_m.shape[0],0) 
         v_a = np.delete(v_b,0)
         v_a = np.delete(v_a,0)
-        v_a = np.insert(v_a,v_a.shape[0]-1,0)   
-        v_a = np.insert(v_a,v_a.shape[0]-1,0)   
+        v_a = np.insert(v_a,v_a.shape[0],0)   
+        v_a = np.insert(v_a,v_a.shape[0],0)   
+     
         result = np.logical_and(v_m<v_b,v_m<v_a)
         result=np.insert(result,0,False) 
-        result=np.delete(result,result.shape[0]-1) 
+        result=np.delete(result,result.shape[0]-1)   
+        result[0]=False
+        result[result.shape[0]-1]=False
         return result             
     #----------------------------------------------------------------------
     def calculate_high(self,kline_value):
-        """计算低点"""
+        """计算高点"""
         '''伪代码
-        xb = np.array([0,5,6,7,4,5,1,2,8,9])  # 原始              三个值的第1个
-        xm = np.array([5,6,7,4,5,1,2,8,9,0])  # 左移一位后面补0    三个值的第2个
-        xa = np.array([6,7,4,5,1,2,8,9,0,0])  # 左移二位后面补0    三个值的第3个
-        #第2个小于第一个和第三个 则是短期低点
-        #第2个大于第一个和第三个 则是短期高点
-        r = np.logical_and(xm<xa,xm<xb)
-        r=np.insert(r,0,False) 
-        r=np.delete(r,r.shape[0]-1) 
-        for ii in range(0,len(self.KLINE_OPEN)):
-            if result.tolist()[ii] == True: 
-                print(self.KLINE_DATE[ii],result.tolist()[ii])   
+        xb = np.array([9,5,6,7,4,5,1,2,3,4])  # 原始              三个值的第1个
+        xm = np.array([5,6,7,4,5,1,2,3,4,0])  # 左移一位后面补0    三个值的第2个
+        xa = np.array([6,7,4,5,1,2,3,4,0,0])  # 左移二位后面补0    三个值的第3个
+        result =      [F,F,T,F,T,F,F,F,T,F]   # result = np.logical_and(xm<xb,xm<xa)
+                      [Y,Y,Y,Y,Y,Y,Y,Y,N,N]   # Y=有用 N=没用
+        result =      [F,F,F,T,F,T,F,F,F,T,F] # result=np.insert(result,0,False) 
+                      [N,Y,Y,Y,Y,Y,Y,Y,Y,N,N] # Y=有用 N=没用
+        result =      [F,F,F,T,F,T,F,F,F,T]   # result=np.delete(result,result.shape[0]-1)  
+                      [N,Y,Y,Y,Y,Y,Y,Y,Y,N]   # Y=有用 N=没用
         '''  
         v_b = np.array(kline_value)         
         v_m = np.delete(v_b,0) 
-        v_m = np.insert(v_m,v_m.shape[0]-1,0) 
+        v_m = np.insert(v_m,v_m.shape[0],0) 
         v_a = np.delete(v_b,0)
         v_a = np.delete(v_a,0)
-        v_a = np.insert(v_a,v_a.shape[0]-1,0)   
-        v_a = np.insert(v_a,v_a.shape[0]-1,0)   
+        v_a = np.insert(v_a,v_a.shape[0],0)   
+        v_a = np.insert(v_a,v_a.shape[0],0)   
+        
+
         result = np.logical_and(v_m>v_b,v_m>v_a)
         result=np.insert(result,0,False) 
         result=np.delete(result,result.shape[0]-1) 
+        result[0]=False
+        result[result.shape[0]-1]=False
         return result     
     #----------------------------------------------------------------------        
     def short_term_low(self,kline_value_low,kline_value_high):
@@ -1575,7 +1591,7 @@ class KLineWidget(KeyWraper):
         '''短期高点'''      
         r_low= self.calculate_high(kline_value_low)
         r_high= self.calculate_high(kline_value_high)
-        r = np.logical_and(r_low,r_high)  
+        r = np.logical_and(r_low,r_high) 
         return r
     #----------------------------------------------------------------------  
     def short_term_list_Limit(self):

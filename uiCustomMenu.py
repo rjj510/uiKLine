@@ -97,8 +97,8 @@ class CustomMenu( QtWidgets.QPushButton):
         self.actionOPI1.triggered.connect(lambda: self.parent.initIndicator(u"设为结束日期"))           
 
         ##量仓分析
-        self.actionOPI2 = self.amountMenu.addAction(u'MA_螺纹多_PLUS')
-        self.actionOPI2.triggered.connect(lambda: self.parent.initIndicator(u"MA_螺纹多_PLUS"))
+        self.actionOPI2 = self.amountMenu.addAction(u'MA_螺纹空_PLUS')
+        self.actionOPI2.triggered.connect(lambda: self.parent.initIndicator(u"MA_螺纹空_PLUS"))
 
         ##成交量分析
         self.actionVOL = self.amountMenu.addAction(u'SHORTTERM_螺纹_多')
