@@ -1,17 +1,17 @@
 [
   {
     "SHORT_TERM_SHOW_FIRST": false, 
-    "SIGNALSHOW": false, 
+    "SIGNALSHOW": true, 
     "SHORT_TERM_SHOW": false, 
-    "ENDDAY": "20181119", 
+    "ENDDAY": "20181122", 
     "STARTDAY": "20170103", 
     "MA_SHORT_SHOW": false, 
     "MA_SHORT_DAY": 11, 
     "MA_LONG_DAY": 114, 
-    "ENDPOS": 2347, 
+    "ENDPOS": 2350, 
     "StrategyName": "MA_\u87ba\u7eb9\u7a7a_PLUS", 
     "MA_LONG_SHOW": true, 
     "STARTPOS": 1890, 
-    "KLINESHOW": true
+    "KLINESHOW": false
   }
 ]

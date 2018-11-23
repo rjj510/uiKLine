@@ -527,10 +527,10 @@ class KLineWidget(KeyWraper):
         self.pwKL.addItem(self.MA_LONGOI)
         self.MA_LONGOI.hide()                
                
-        self.start_date_Line     = pg.InfiniteLine(angle=90, movable=False,pen=({'color': "w", 'width': 0.5})) 
+        self.start_date_Line     = pg.InfiniteLine(angle=90, movable=False,pen=({'color': [255, 255, 255, 100], 'width': 0.5})) 
         self.pwKL.addItem(self.start_date_Line)
         
-        self.end_date_Line     = pg.InfiniteLine(angle=90, movable=False,pen=({'color': "y", 'width': 0.5})) 
+        self.end_date_Line     = pg.InfiniteLine(angle=90,movable=False,pen=({'color': [255, 255, 0, 100], 'width': 0.5})) 
         self.pwKL.addItem(self.end_date_Line)        
         
         self.pwKL.setMinimumHeight(350)
