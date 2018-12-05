@@ -34,9 +34,10 @@ sys.setdefaultencoding('utf-8')
 
 
 import importlib
-import runBacktesting_ShortTermStrategy          as ST
-import runBacktesting_ShortTermStrategy_Overhigh as STOV
-import runBacktesting_WH                         as DMA
+import runBacktesting_ShortTermStrategy_RB          as STRB
+import runBacktesting_ShortTermStrategy_Overhigh_RB as STOVRB
+import runBacktesting_RB                            as DMARB
+import runBacktesting_Volatility_RB                 as VRB
 # 字符串转换
 #---------------------------------------------------------------------------------------
 try:
@@ -335,7 +336,6 @@ class KLineWidget(KeyWraper):
 
     # 保存K线数据的列表和Numpy Array对象
     listBar  = []
-    listbarshow= False
     listVol  = []
     listHigh = []
     listLow  = []
@@ -345,7 +345,6 @@ class KLineWidget(KeyWraper):
     KLINE_LOW = []
     KLINE_SHORT_TERM_LOW = []
     KLINE_SHORT_TERM_HIGH = []
-    #KLINE_SHORT_TERM_LIST=[]
     KLINE_SHORT_TERM_LIST_ALL=[]
     KLINE_SHORT_TERM_LIST_FIRST=[]
     KLINE_SHORT_TERM_LIST_LIMIT=[]
@@ -353,29 +352,27 @@ class KLineWidget(KeyWraper):
     listSig  = []
     listOpenInterest = []
     arrows   = []
-    #KLINE_SHORT_TERM_LIST_arrows = []
     KLINE_SHORT_TERM_LIST_ALL_arrows = []
     KLINE_SHORT_TERM_LIST_FIRST_arrows = []
     KLINE_SHORT_TERM_LIST_LIMIT_arrows = []
     curves   = []
-    #KLINE_SHORT_TERM_LIST_curves = []
     KLINE_SHORT_TERM_LIST_ALL_curves = []
     KLINE_SHORT_TERM_LIST_FIRST_curves = []
     KLINE_SHORT_TERM_LIST_LIMIT_curves = []
     listSig_deal_DIRECTION  = []
     listSig_deal_OFFSET = []
-    KLINE_show=True
-    MA_SHORT_show=False
-    MA_LONG_show=False
-
-    SHORT_TERM_SHOW=False    
-    SHORT_TERM_SHOW_FIRST=False
-    SHORT_TERM_SHOW_LIMIT=False
-    SHORT_TERM_SHOW_ALL=False
-    signal_show=True    
     KLINE_CLOSE=[]
     start_date=[] #[20090327开始日期，列表的位置]
-    end_date=[]   #[20181127结束日期，结束的位置]    
+    end_date=[]   #[20181127结束日期，结束的位置]   
+    KLINE_show           =True
+    MA_SHORT_show        =False
+    MA_LONG_show         =False
+    listbarshow          =False
+    SHORT_TERM_SHOW      =False    
+    SHORT_TERM_SHOW_FIRST=False
+    SHORT_TERM_SHOW_LIMIT=False
+    SHORT_TERM_SHOW_ALL  =False
+    signal_show          =True     
 
 
     # 是否完成了历史数据的读取
@@ -418,7 +415,9 @@ class KLineWidget(KeyWraper):
         self.SHORT_TERM_SHOW_LIMIT=False
         self.SHORT_TERM_SHOW_ALL=False
         self.signal_show=False
-
+        self.cur_jsonname=u'json\\uiKLine_startpara.json'
+        self.SP_signal='close'
+        self.BP_signal='close'
         # 所有K线上信号图
         self.allColor = deque(['blue','green','yellow','white'])
         self.sigData  = {}
@@ -436,7 +435,6 @@ class KLineWidget(KeyWraper):
 
         # 调用函数
         self.initUi()
-
 
         self.menu= CustomMenu(self)
     #----------------------------------------------------------------------
@@ -552,6 +550,29 @@ class KLineWidget(KeyWraper):
         pass
 
     #----------------------------------------------------------------------
+    def reinit(self,pingzhongname,filename,dailyresultname,jsonname):
+        """更换品种，重新初始化"""
+        # K线界面
+        ui.loadKLineSetting(jsonname)
+        ui.KLtitle.setText(pingzhongname+'   '+ui.StrategyName ,size='10pt',color='FFFF00')
+        ui.loadData(pd.DataFrame.from_csv(filename))
+        ui.loadData_listsig(pd.DataFrame.from_csv(dailyresultname))
+        # 初始化界面显示
+        self.SHORT_TERM_SHOW_ALL =False
+        self.SHORT_TERM_SHOW_FIRST =False
+        self.SHORT_TERM_SHOW_LIMIT =False
+        ui.initIndicator(u'MA SHORT')
+        ui.initIndicator(u'MA LONG')
+        ui.initIndicator(u'KLINE')
+        ui.initIndicator(u'SHORT TERM(First)')
+        ui.initIndicator(u'SHORT TERM(All)')
+        ui.initIndicator(u'SHORT TERM(Limit)')
+        if ui.signal_show == True :
+            ui.initIndicator(u'信号显示')
+        else:
+            ui.initIndicator(u'信号隐藏')
+        ui.refreshAll()
+    #----------------------------------------------------------------------
     #  画图相关 
     #----------------------------------------------------------------------
     def plotVol(self,redraw=False,xmin=0,xmax=-1):
@@ -572,12 +593,13 @@ class KLineWidget(KeyWraper):
         """重画MA_SHORT """
         if self.initCompleted:
             self.MA_SHORTOI.setData(np.array(self.MA_SHORT_real))#画MA_SHORT            
-            
+            self.refresh()               
     #----------------------------------------------------------------------   
     def plotMA_LONG(self):
         """重画MA_LONG  """
         if self.initCompleted:
-            self.MA_LONGOI.setData(np.array(self.MA_LONG_real))#画MA_LONG  
+            self.MA_LONGOI.setData(np.array(self.MA_LONG_real))#画MA_LONG 
+            self.refresh()           
     #----------------------------------------------------------------------   
     def plot_startdate(self,pos):
         """重画起始日期  """
@@ -659,7 +681,7 @@ class KLineWidget(KeyWraper):
             elif cmp(self.listSig_deal_DIRECTION[i] , '空')==0  and cmp(self.listSig_deal_OFFSET[i] , '平仓')==0 :
                 arrow = pg.ArrowItem(pos=(i, self.datas[i]['high']),size=7,tipAngle=55,tailLen=3,tailWidth=4 ,angle=-90, brush=(0, 0, 0),pen=({'color': "g", 'width': 1}))
                 if lastbk_x !=-1:
-                    curve = pg.PlotCurveItem(x=np.array([lastbk_x,i]),y=np.array([lastbk_y,self.datas[i]['close']]),name='duo',pen=({'color': "r", 'width': 3})) 
+                    curve = pg.PlotCurveItem(x=np.array([lastbk_x,i]),y=np.array([lastbk_y,self.datas[i][self.SP_signal]]),name='duo',pen=({'color': "r", 'width': 3})) 
                     self.pwKL.addItem(curve)          
                     self.curves.append(curve)  
                     lastbk_x = -1
@@ -672,7 +694,7 @@ class KLineWidget(KeyWraper):
             elif cmp(self.listSig_deal_DIRECTION[i] , '多')==0  and cmp(self.listSig_deal_OFFSET[i] , '平仓')==0 :
                 arrow = pg.ArrowItem(pos=(i, self.datas[i]['low']),size=7,tipAngle=55,tailLen=3,tailWidth=4 ,angle=90, brush=(0, 0, 0),pen=({'color': "r", 'width': 1}))
                 if lastsk_x !=-1:
-                    curve = pg.PlotCurveItem(x=np.array([lastsk_x,i]),y=np.array([lastsk_y,self.datas[i]['close']]),pen=({'color': "g", 'width': 3})) 
+                    curve = pg.PlotCurveItem(x=np.array([lastsk_x,i]),y=np.array([lastsk_y,self.datas[i][self.BP_signal]]),pen=({'color': "g", 'width': 3})) 
                     self.pwKL.addItem(curve)          
                     self.curves.append(curve)  
                     lastsk_x = -1
@@ -683,6 +705,7 @@ class KLineWidget(KeyWraper):
         """画指标"""
         # 检查是否有数据
         if len(self.KLINE_SHORT_TERM_LIST_LIMIT)==0 :
+            self.refresh()   
             return
         for arrow in self.KLINE_SHORT_TERM_LIST_LIMIT_arrows:
             self.pwKL.removeItem(arrow)      
@@ -720,6 +743,7 @@ class KLineWidget(KeyWraper):
         """画指标"""
         # 检查是否有数据
         if len(self.KLINE_SHORT_TERM_LIST_ALL)==0 :
+            self.refresh()            
             return
         for arrow in self.KLINE_SHORT_TERM_LIST_ALL_arrows:
             self.pwKL.removeItem(arrow)     
@@ -759,6 +783,7 @@ class KLineWidget(KeyWraper):
         """画指标"""
         # 检查是否有数据
         if len(self.KLINE_SHORT_TERM_LIST_FIRST)==0 :
+            self.refresh()   
             return
         for arrow in self.KLINE_SHORT_TERM_LIST_FIRST_arrows:
             self.pwKL.removeItem(arrow)     
@@ -986,26 +1011,26 @@ class KLineWidget(KeyWraper):
     #  右键菜单相关 
     #----------------------------------------------------------------------              
     def initIndicator(self,data):
-        if cmp(data, u'信号隐藏') == 0 :
+        if cmp(data,   u'信号隐藏') == 0 :
             for arrow in self.arrows:
                 arrow.hide()
             for curve in self.curves:
                 curve.hide()
             self.signal_show=False
-            klinesettings= self.load_json_file()
+            klinesettings= self.load_json_file(self.cur_jsonname)
             for setting in klinesettings:
                 setting['SIGNALSHOW']= (self.signal_show)
-            self.rewrite_json_file(klinesettings)
+            self.rewrite_json_file(klinesettings,self.cur_jsonname)
         elif cmp(data, u'信号显示') == 0 :
             for arrow in self.arrows:
                 arrow.show()  
             for curve in self.curves:
                 curve.show()
             self.signal_show=True
-            klinesettings= self.load_json_file()
+            klinesettings= self.load_json_file(self.cur_jsonname)
             for setting in klinesettings:
                 setting['SIGNALSHOW']= (self.signal_show)
-            self.rewrite_json_file(klinesettings)
+            self.rewrite_json_file(klinesettings,self.cur_jsonname)
         elif cmp(data, u'KLINE') == 0 :
             if self.KLINE_show ==True:
                 self.pwKL.removeItem(self.candle)        
@@ -1015,10 +1040,10 @@ class KLineWidget(KeyWraper):
                 self.pwKL.addItem(self.candle)
                 self.KLINEOI_CLOSE.hide()       
                 self.KLINE_show=True
-            klinesettings= self.load_json_file()
+            klinesettings= self.load_json_file(self.cur_jsonname)
             for setting in klinesettings:                
                 setting['KLINESHOW']= not(self.KLINE_show)
-            self.rewrite_json_file(klinesettings)
+            self.rewrite_json_file(klinesettings,self.cur_jsonname)
         elif cmp(data, u'MA SHORT') == 0 :
             if len(self.MA_SHORT_real) == 0:             
                 self.MA_SHORT_real = ta.MA(np.array(self.KLINE_CLOSE), timeperiod=self.MA_SHORT_DAY, matype=0).tolist()
@@ -1030,11 +1055,11 @@ class KLineWidget(KeyWraper):
             else:
                 self.MA_SHORTOI.show() 
                 self.MA_SHORT_show =True
-            klinesettings= self.load_json_file()
+            klinesettings= self.load_json_file(self.cur_jsonname)
             for setting in klinesettings:
                 setting['MA_SHORT_SHOW']= not(self.MA_SHORT_show)
-            self.rewrite_json_file(klinesettings)
-        elif cmp(data,u'MA LONG') == 0 :
+            self.rewrite_json_file(klinesettings,self.cur_jsonname)
+        elif cmp(data, u'MA LONG') == 0 :
             if len(self.MA_LONG_real) == 0:
                 self.MA_LONG_real = ta.MA(np.array(self.KLINE_CLOSE), timeperiod=self.MA_LONG_DAY, matype=0).tolist()
                 self.crosshair.ma_l_values = self.MA_LONG_real 
@@ -1045,55 +1070,55 @@ class KLineWidget(KeyWraper):
             else:
                 self.MA_LONGOI.show() 
                 self.MA_LONG_show =True
-            klinesettings= self.load_json_file()
+            klinesettings= self.load_json_file(self.cur_jsonname)
             for setting in klinesettings:
                 setting['MA_LONG_SHOW']= not(self.MA_LONG_show)
-            self.rewrite_json_file(klinesettings)
+            self.rewrite_json_file(klinesettings,self.cur_jsonname)
         elif cmp(data, u'设为起始日期') == 0 :
             if self.crosshair.cur_date()[1] < self.end_date[1]:
                 self.plot_startdate(self.crosshair.cur_date()[1])
                 self.start_date = self.crosshair.cur_date()
-                klinesettings= self.load_json_file()
+                klinesettings= self.load_json_file(self.cur_jsonname)
                 for setting in klinesettings:
                     setting['STARTDAY']= self.start_date[0]
                     setting['STARTPOS']= self.start_date[1]
-                self.rewrite_json_file(klinesettings)
+                self.rewrite_json_file(klinesettings,self.cur_jsonname)
         elif cmp(data, u'设为结束日期') == 0 :
             if self.crosshair.cur_date()[1] > self.start_date[1]:
                 self.plot_enddate(self.crosshair.cur_date()[1])
                 self.end_date = self.crosshair.cur_date()
-                klinesettings= self.load_json_file()
+                klinesettings= self.load_json_file(self.cur_jsonname)
                 for setting in klinesettings:
                     setting['ENDDAY']= self.end_date[0]
                     setting['ENDPOS']= self.end_date[1]
-                self.rewrite_json_file(klinesettings)
+                self.rewrite_json_file(klinesettings,self.cur_jsonname)
         elif cmp(data, u'MA_螺纹空_PLUS') == 0 :
-            reload(DMA)
-            engine  = DMA.calculateDailyResult_init() 
-            initday = DMA.get_strategy_init_days(engine)  
+            reload(DMARB)
+            engine  = DMARB.calculateDailyResult_init() 
+            initday = DMARB.get_strategy_init_days(engine)  
             if self.start_date[1] < initday:
                 initday = 0 
-            DMA.calculateDailyResult_to_CSV(engine,dt.datetime.strftime(pd.to_datetime(pd.to_datetime(self.datas[self.start_date[1]-initday]['datetime'],)),'%Y%m%d'),self.start_date[1],dt.datetime.strftime(pd.to_datetime(pd.to_datetime(self.datas[self.end_date[1]]['datetime'],)),'%Y%m%d'),self.end_date[1],os.path.abspath('.\data\dailyresult\RB9999.csv'))
+            DMARB.calculateDailyResult_to_CSV(engine,dt.datetime.strftime(pd.to_datetime(pd.to_datetime(self.datas[self.start_date[1]-initday]['datetime'],)),'%Y%m%d'),self.start_date[1],dt.datetime.strftime(pd.to_datetime(pd.to_datetime(self.datas[self.end_date[1]]['datetime'],)),'%Y%m%d'),self.end_date[1],os.path.abspath('.\data\dailyresult\RB9999.csv'))
             self.clearSigData()
             self.loadData_listsig(pd.DataFrame.from_csv('data\dailyresult\RB9999.csv'))
+            self.BP_signal='close'            
             self.plotMark()   
             self.plot_after_runStrategy()    
             
-            self.MA_SHORT_DAY  = DMA.get_strategy_SK_A_LONG(engine)    
+            self.MA_SHORT_DAY  = DMARB.get_strategy_SK_A_LONG(engine)    
             self.MA_SHORT_real = ta.MA(np.array(self.KLINE_CLOSE), timeperiod=self.MA_SHORT_DAY, matype=0).tolist()
             self.crosshair.ma_s_values = self.MA_SHORT_real 
             self.plotMA_SHORT()
             self.MA_SHORTOI.show() 
             self.MA_SHORT_show =True  
             
-            self.MA_LONG_DAY  = DMA.get_strategy_SK_E_LONG(engine)    
+            self.MA_LONG_DAY  = DMARB.get_strategy_SK_E_LONG(engine)    
             self.MA_LONG_real = ta.MA(np.array(self.KLINE_CLOSE), timeperiod=self.MA_LONG_DAY, matype=0).tolist()
             self.crosshair.ma_l_values = self.MA_LONG_real 
             self.plotMA_LONG()
             self.MA_LONGOI.show() 
             self.MA_LONG_show =True  
-            
-            
+                        
             self.KLtitle.setText('RB9999'+'   '+'MA_螺纹空_PLUS' ,size='10pt',color='g')
             klinesettings= self.load_json_file()
             for setting in klinesettings:
@@ -1135,11 +1160,7 @@ class KLineWidget(KeyWraper):
                     arrow.hide()  
                 for curve in self.KLINE_SHORT_TERM_LIST_FIRST_curves:
                     curve.hide()
-                self.SHORT_TERM_SHOW_FIRST =True            
-            klinesettings= self.load_json_file()
-            for setting in klinesettings:
-                setting['SHORT_TERM_SHOW_FIRST']= not(self.SHORT_TERM_SHOW_FIRST)
-            self.rewrite_json_file(klinesettings)   
+                self.SHORT_TERM_SHOW_FIRST =True             
         elif cmp(data, u'SHORT TERM(All)') == 0 :
             if len(self.KLINE_SHORT_TERM_LIST_ALL) ==0:
                 self.short_term_list_All()
@@ -1161,18 +1182,19 @@ class KLineWidget(KeyWraper):
                     curve.hide()
                 self.SHORT_TERM_SHOW_ALL =True              
         elif cmp(data, u'SHORTTERM_螺纹_多') == 0 :             
-            reload(ST)
-            engine=ST.calculateDailyResult_init(True)            
-            initday = ST.get_strategy_init_days(engine)  
+            reload(STRB)
+            engine=STRB.calculateDailyResult_init(True)            
+            initday = STRB.get_strategy_init_days(engine)  
             if self.start_date[1] < initday:
                 initday = 0 
-            ST.calculateDailyResult_to_CSV(engine,dt.datetime.strftime(pd.to_datetime(pd.to_datetime(self.datas[self.start_date[1]-initday]['datetime'],)),'%Y%m%d') ,self.start_date[1],dt.datetime.strftime(pd.to_datetime(pd.to_datetime(self.datas[self.end_date[1]]['datetime'],)),'%Y%m%d') ,self.end_date[1],os.path.abspath('.\data\dailyresult\RB9999.csv'))
+            STRB.calculateDailyResult_to_CSV(engine,dt.datetime.strftime(pd.to_datetime(pd.to_datetime(self.datas[self.start_date[1]-initday]['datetime'],)),'%Y%m%d') ,self.start_date[1],dt.datetime.strftime(pd.to_datetime(pd.to_datetime(self.datas[self.end_date[1]]['datetime'],)),'%Y%m%d') ,self.end_date[1],os.path.abspath('.\data\dailyresult\RB9999.csv'))
             
             self.clearSigData()
             self.loadData_listsig(pd.DataFrame.from_csv('data\dailyresult\RB9999.csv'))
+            self.SP_signal='close'            
             self.plotMark()   
             self.plot_after_runStrategy()    
-            self.MA_SHORT_DAY  = ST.get_strategy_E_LONG(engine)    
+            self.MA_SHORT_DAY  = STRB.get_strategy_E_LONG(engine)    
             self.MA_SHORT_real = ta.MA(np.array(self.KLINE_CLOSE), timeperiod=self.MA_SHORT_DAY, matype=0).tolist()
             self.crosshair.ma_s_values = self.MA_SHORT_real 
             self.plotMA_SHORT()
@@ -1186,18 +1208,19 @@ class KLineWidget(KeyWraper):
             self.rewrite_json_file(klinesettings)         
     
         elif cmp(data, u'SHORTTERM_螺纹_空') == 0 :             
-            reload(ST)
-            engine=ST.calculateDailyResult_init(False)            
-            initday = ST.get_strategy_init_days(engine)  
+            reload(STRB)
+            engine=STRB.calculateDailyResult_init(False)            
+            initday = STRB.get_strategy_init_days(engine)  
             if self.start_date[1] < initday:
                 initday = 0 
-            ST.calculateDailyResult_to_CSV(engine,dt.datetime.strftime(pd.to_datetime(pd.to_datetime(self.datas[self.start_date[1]-initday]['datetime'],)),'%Y%m%d') ,self.start_date[1],dt.datetime.strftime(pd.to_datetime(pd.to_datetime(self.datas[self.end_date[1]]['datetime'],)),'%Y%m%d') ,self.end_date[1],os.path.abspath('.\data\dailyresult\RB9999.csv'))
+            STRB.calculateDailyResult_to_CSV(engine,dt.datetime.strftime(pd.to_datetime(pd.to_datetime(self.datas[self.start_date[1]-initday]['datetime'],)),'%Y%m%d') ,self.start_date[1],dt.datetime.strftime(pd.to_datetime(pd.to_datetime(self.datas[self.end_date[1]]['datetime'],)),'%Y%m%d') ,self.end_date[1],os.path.abspath('.\data\dailyresult\RB9999.csv'))
             
             self.clearSigData()
             self.loadData_listsig(pd.DataFrame.from_csv('data\dailyresult\RB9999.csv'))
+            self.BP_signal='close'
             self.plotMark()   
             self.plot_after_runStrategy()    
-            self.MA_SHORT_DAY  = ST.get_strategy_SK_E_LONG(engine)    
+            self.MA_SHORT_DAY  = STRB.get_strategy_SK_E_LONG(engine)    
             self.MA_SHORT_real = ta.MA(np.array(self.KLINE_CLOSE), timeperiod=self.MA_SHORT_DAY, matype=0).tolist()
             self.crosshair.ma_s_values = self.MA_SHORT_real 
             self.plotMA_SHORT()
@@ -1210,18 +1233,19 @@ class KLineWidget(KeyWraper):
                 setting['StrategyName']= 'SHORTTERM_螺纹_空'
             self.rewrite_json_file(klinesettings)   
         elif cmp(data, u'SHORTTERM_螺纹_多_加仓')==0:          
-            reload(STOV)
-            engine=STOV.calculateDailyResult_init(True)            
-            initday = STOV.get_strategy_init_days(engine)  
+            reload(STOVRB)
+            engine=STOVRB.calculateDailyResult_init(True)            
+            initday = STOVRB.get_strategy_init_days(engine)  
             if self.start_date[1] < initday:
                 initday = 0 
-            STOV.calculateDailyResult_to_CSV(engine,dt.datetime.strftime(pd.to_datetime(pd.to_datetime(self.datas[self.start_date[1]-initday]['datetime'],)),'%Y%m%d') ,self.start_date[1],dt.datetime.strftime(pd.to_datetime(pd.to_datetime(self.datas[self.end_date[1]]['datetime'],)),'%Y%m%d') ,self.end_date[1],os.path.abspath('.\data\dailyresult\RB9999.csv'))
+            STOVRB.calculateDailyResult_to_CSV(engine,dt.datetime.strftime(pd.to_datetime(pd.to_datetime(self.datas[self.start_date[1]-initday]['datetime'],)),'%Y%m%d') ,self.start_date[1],dt.datetime.strftime(pd.to_datetime(pd.to_datetime(self.datas[self.end_date[1]]['datetime'],)),'%Y%m%d') ,self.end_date[1],os.path.abspath('.\data\dailyresult\RB9999.csv'))
             
             self.clearSigData()
             self.loadData_listsig(pd.DataFrame.from_csv('data\dailyresult\RB9999.csv'))
+            self.SP_signal='close'            
             self.plotMark()   
             self.plot_after_runStrategy()    
-            self.MA_SHORT_DAY  = STOV.get_strategy_E_LONG(engine)    
+            self.MA_SHORT_DAY  = STOVRB.get_strategy_E_LONG(engine)    
             self.MA_SHORT_real = ta.MA(np.array(self.KLINE_CLOSE), timeperiod=self.MA_SHORT_DAY, matype=0).tolist()
             self.crosshair.ma_s_values = self.MA_SHORT_real 
             self.plotMA_SHORT()
@@ -1232,7 +1256,66 @@ class KLineWidget(KeyWraper):
             for setting in klinesettings:
                 setting['MA_SHORT_SHOW']= not(self.MA_SHORT_show)
                 setting['StrategyName']= 'SHORTTERM_螺纹_多_加仓'
-            self.rewrite_json_file(klinesettings)     
+            self.rewrite_json_file(klinesettings)   
+        elif cmp(data, u'VOLATILITY_螺纹_多')==0:
+            reload(VRB)
+            engine=VRB.calculateDailyResult_init(True,True)            
+            initday = VRB.get_strategy_init_days(engine)  
+            if self.start_date[1] < initday:
+                initday = 0 
+            VRB.calculateDailyResult_to_CSV(engine,dt.datetime.strftime(pd.to_datetime(pd.to_datetime(self.datas[self.start_date[1]-initday]['datetime'],)),'%Y%m%d') ,self.start_date[1],dt.datetime.strftime(pd.to_datetime(pd.to_datetime(self.datas[self.end_date[1]]['datetime'],)),'%Y%m%d') ,self.end_date[1],os.path.abspath('.\data\dailyresult\RB9999.csv'))
+            
+            self.clearSigData()
+            self.loadData_listsig(pd.DataFrame.from_csv('data\dailyresult\RB9999.csv'))
+            self.SP_signal='close'            
+            self.plotMark()   
+            self.plot_after_runStrategy()    
+            self.MA_SHORTOI.hide()    
+            self.KLtitle.setText('RB9999'+'   '+'VOLATILITY_螺纹_多' ,size='10pt',color='FF0000')
+            klinesettings= self.load_json_file()
+            for setting in klinesettings:
+                setting['MA_SHORT_SHOW']= not(self.MA_SHORT_show)
+                setting['StrategyName']= 'VOLATILITY_螺纹_多'
+            self.rewrite_json_file(klinesettings)   
+            self.MA_LONGOI.hide() 
+            self.MA_SHORTOI.hide()       
+        elif cmp(data, u'VOLATILITY_螺纹_空')==0:
+            reload(VRB)
+            engine=VRB.calculateDailyResult_init(True,False)            
+            initday = VRB.get_strategy_init_days(engine)  
+            if self.start_date[1] < initday:
+                initday = 0 
+            VRB.calculateDailyResult_to_CSV(engine,dt.datetime.strftime(pd.to_datetime(pd.to_datetime(self.datas[self.start_date[1]-initday]['datetime'],)),'%Y%m%d') ,self.start_date[1],dt.datetime.strftime(pd.to_datetime(pd.to_datetime(self.datas[self.end_date[1]]['datetime'],)),'%Y%m%d') ,self.end_date[1],os.path.abspath('.\data\dailyresult\RB9999.csv'))
+            
+            self.clearSigData()
+            self.loadData_listsig(pd.DataFrame.from_csv('data\dailyresult\RB9999.csv'))
+            self.BP_signal='close'            
+            self.plotMark()   
+            self.plot_after_runStrategy()    
+            self.MA_SHORTOI.hide()    
+            self.KLtitle.setText('RB9999'+'   '+'VOLATILITY_螺纹_空' ,size='10pt',color='00FF00')
+            klinesettings= self.load_json_file()
+            for setting in klinesettings:
+                setting['MA_SHORT_SHOW']= not(self.MA_SHORT_show)
+                setting['StrategyName']= 'VOLATILITY_螺纹_空'
+            self.rewrite_json_file(klinesettings)   
+            self.MA_LONGOI.hide() 
+            self.MA_SHORTOI.hide()  
+        elif cmp(data, u'BU9999')==0:
+            self.clearSig()
+            self.clearSigData()
+            self.clearData()
+            self.plotAll()
+            self.cur_jsonname=u'json\\BU9999_uiKLine_startpara.json'
+            self.reinit('BU9999','data\dailydata\BU9999.csv','data\dailyresult\BU9999.csv',self.cur_jsonname)
+        elif cmp(data, u'RB9999')==0:
+            self.clearSig()
+            self.clearSigData()
+            self.clearData()
+            self.clearIndexData()
+            self.plotAll()
+            self.cur_jsonname=u'json\\uiKLine_startpara.json'
+            self.reinit('RB9999','data\dailydata\RB9999.csv','data\dailyresult\RB9999.csv',self.cur_jsonname)
     #----------------------------------------------------------------------
     #  界面回调相关
     #----------------------------------------------------------------------
@@ -1276,6 +1359,7 @@ class KLineWidget(KeyWraper):
     def clearData(self):
         """清空数据"""
         # 清空数据，重新画图
+        '''
         self.time_index = []
         self.listBar = []
         self.listVol = []
@@ -1290,6 +1374,38 @@ class KLineWidget(KeyWraper):
         self.MA_SHORT_real=[]
         self.MA_LONG_real=[]
         self.start_time=[]    
+        '''
+        self.listBar  = []
+        self.listVol  = []
+        self.listHigh = []
+        self.listLow  = []
+        self.KLINE_DATE = []
+        self. KLINE_OPEN = []
+        self.KLINE_HIGH = []
+        self.KLINE_LOW = []
+        self.KLINE_SHORT_TERM_LOW = []
+        self.KLINE_SHORT_TERM_HIGH = []
+        self.KLINE_SHORT_TERM_LIST_ALL=[]
+        self.KLINE_SHORT_TERM_LIST_FIRST=[]
+        self.KLINE_SHORT_TERM_LIST_LIMIT=[]
+        self.listClose  = []
+        self.listSig  = []
+        self.listOpenInterest = []
+        self.arrows   = []
+        self.KLINE_SHORT_TERM_LIST_ALL_arrows = []
+        self.KLINE_SHORT_TERM_LIST_FIRST_arrows = []
+        self.KLINE_SHORT_TERM_LIST_LIMIT_arrows = []
+        self.curves   = []
+        self.KLINE_SHORT_TERM_LIST_ALL_curves = []
+        self.KLINE_SHORT_TERM_LIST_FIRST_curves = []
+        self.KLINE_SHORT_TERM_LIST_LIMIT_curves = []
+        self.listSig_deal_DIRECTION  = []
+        self.listSig_deal_OFFSET = []
+        self.KLINE_CLOSE=[]
+        self.MA_SHORT_real=[]
+        self.MA_LONG_real=[]
+        #self.start_date=[] #[20090327开始日期，列表的位置]
+        #self.end_date=[]   #[20181127结束日期，结束的位置]   
         
     #----------------------------------------------------------------------
     def clearSigData(self):
@@ -1303,7 +1419,31 @@ class KLineWidget(KeyWraper):
             self.pwKL.removeItem(curve)        
         self.arrows   = []
         self.curves   = []        
-
+    #----------------------------------------------------------------------
+    def clearIndexData(self):
+        """清除索引数据"""
+        for arrow in self.KLINE_SHORT_TERM_LIST_ALL_arrows:
+            self.pwKL.removeItem(arrow)
+        for arrow in self.KLINE_SHORT_TERM_LIST_FIRST_arrows:
+            self.pwKL.removeItem(arrow)
+        for arrow in self.KLINE_SHORT_TERM_LIST_LIMIT_arrows:
+            self.pwKL.removeItem(arrow)
+        for curve in self.KLINE_SHORT_TERM_LIST_ALL_curves:
+            self.pwKL.removeItem(curve)    
+        for curve in self.KLINE_SHORT_TERM_LIST_FIRST_curves:
+            self.pwKL.removeItem(curve)  
+        for curve in self.KLINE_SHORT_TERM_LIST_LIMIT_curves:
+            self.pwKL.removeItem(curve)   
+        self.KLINE_SHORT_TERM_LIST_ALL_arrows=[]
+        self.KLINE_SHORT_TERM_LIST_FIRST_arrows=[]
+        self.KLINE_SHORT_TERM_LIST_LIMIT_arrows=[]
+        self.KLINE_SHORT_TERM_LIST_ALL_curves=[]
+        self.KLINE_SHORT_TERM_LIST_FIRST_curves=[]
+        self.KLINE_SHORT_TERM_LIST_LIMIT_curves=[]
+        self.KLINE_SHORT_TERM_LIST_ALL=[]
+        self.KLINE_SHORT_TERM_LIST_FIRST=[]
+        self.KLINE_SHORT_TERM_LIST_LIMIT=[]
+        
     #----------------------------------------------------------------------
     def clearSig(self,main=True):
         """清空信号图形"""
@@ -1425,10 +1565,10 @@ class KLineWidget(KeyWraper):
             self.updateAll()
         self.crosshair.signal.emit((None,None))
     #----------------------------------------------------------------------
-    def loadKLineSetting(self):
+    def loadKLineSetting(self,jsonname=u'json\\uiKLine_startpara.json'):
         """"""
         try:
-            with open(u'json\\uiKLine_startpara.json') as f:
+            with open(jsonname) as f:
                 initsettings= json.load(f)
                 f.close()
                 self.start_date=[]
@@ -1459,17 +1599,17 @@ class KLineWidget(KeyWraper):
             self.signal_show=True
             self.SHORT_TERM_SHOW_FIRST=True
             self.StrategyName    ='None'
-            print "Error: uiKLine_startpara.josn没有找到文件或读取文件失败"        
+            print "Error: josn没有找到文件或读取文件失败"        
         
     #----------------------------------------------------------------------
-    def rewrite_json_file(self,json_data):
-        with open(u'json\\uiKLine_startpara.json', 'w') as f:
+    def rewrite_json_file(self,json_data,jsonname= u'json\\uiKLine_startpara.json'):
+        with open(jsonname, 'w') as f:
             json.dump(json_data,f,indent=2)
         f.close()
     #----------------------------------------------------------------------
-    def load_json_file(self):
+    def load_json_file(self,jsonname=u'json\\uiKLine_startpara.json'):
         try:
-            with open(u'json\\uiKLine_startpara.json') as f:
+            with open(jsonname) as f:
                 initsettings= json.load(f)
                 f.close()      
         except:

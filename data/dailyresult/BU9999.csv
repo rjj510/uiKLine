@@ -1,0 +1,4 @@
+﻿closePosition,closePrice,commission,date,deal_DIRECTION,deal_OFFSET,netPnl,openPosition,positionPnl,previousClose,slippage,totalPnl,tradeCount,tradingPnl,turnover
+0,4482.0,0.0,2013-10-09,,,0.0,0,0.0,4598.0,0,0.0,0,0.0,0.0
+0,4508.0,0.0,2013-10-10,,,0.0,0,0.0,4466.0,0,0.0,0,0.0,0.0
+0,4470.0,0.0,2013-10-11,,,0.0,0,0.0,4516.0,0,0.0,0,0.0,0.0

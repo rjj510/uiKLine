@@ -64,6 +64,7 @@ class CustomMenu( QtWidgets.QPushButton):
         self.trendMenu=self.contextMenu.addMenu(u"k线形态")
         self.swingMenu = self.contextMenu.addMenu(u"技术指标")
         self.amountMenu = self.contextMenu.addMenu(u"策略研究")
+        self.pzxzMenu = self.contextMenu.addMenu(u"品种选择")
         # 添加二级菜单
 
         #趋势分析指标
@@ -109,6 +110,18 @@ class CustomMenu( QtWidgets.QPushButton):
         
         self.action2 = self.amountMenu.addAction(u'SHORTTERM_螺纹_多_加仓')
         self.action2.triggered.connect(lambda: self.parent.initIndicator(u"SHORTTERM_螺纹_多_加仓"))    
+        
+        self.action5 = self.amountMenu.addAction(u'VOLATILITY_螺纹_多')
+        self.action5.triggered.connect(lambda: self.parent.initIndicator(u"VOLATILITY_螺纹_多"))        
+        
+        self.action6 = self.amountMenu.addAction(u'VOLATILITY_螺纹_空')
+        self.action6.triggered.connect(lambda: self.parent.initIndicator(u"VOLATILITY_螺纹_空"))        
+        
+        self.action3 = self.pzxzMenu.addAction(u'RB9999')
+        self.action3.triggered.connect(lambda: self.parent.initIndicator(u"RB9999"))    
+        
+        self.action4 = self.pzxzMenu.addAction(u'BU9999')
+        self.action4.triggered.connect(lambda: self.parent.initIndicator(u"BU9999"))            
 
         #self.contextMenu.exec_(QCursor.pos())  # 在鼠标位置显示
         #添加二级菜单

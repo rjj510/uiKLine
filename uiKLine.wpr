@@ -19,8 +19,9 @@ proj.directory-list = [{'dirloc': loc('.'),
                         'watch_for_changes': True}]
 proj.file-list = [loc('file:C:/Users/adminsrr/Anaconda2/Lib/site-packages/vnpy/trader/app/ctaStrategy/strategy/strategyDoubleMaWH.py'),
                   loc('file:C:/Users/adminsrr/Anaconda2/Lib/site-packages/vnpy/trader/vtObject.py'),
-                  loc('../vnpy-1.9.0/examples/CtaBacktesting/runBacktesting_ShortTermStrategy.py'),
-                  loc('../vnpy-1.9.0/examples/CtaBacktesting/runBacktesting_ShortTermStrategy_Overhigh.py'),
-                  loc('../vnpy-1.9.0/examples/CtaBacktesting/runBacktesting_WH.py')]
+                  loc('../vnpy-1.9.0/examples/CtaBacktesting/runBacktesting_RB.py'),
+                  loc('../vnpy-1.9.0/examples/CtaBacktesting/runBacktesting_ShortTermStrategy_Overhigh_RB.py'),
+                  loc('../vnpy-1.9.0/examples/CtaBacktesting/runBacktesting_ShortTermStrategy_RB.py'),
+                  loc('../vnpy-1.9.0/examples/CtaBacktesting/runBacktesting_Volatility_RB.py')]
 proj.file-type = 'shared'
 proj.main-file = loc('uiKLine.py')
