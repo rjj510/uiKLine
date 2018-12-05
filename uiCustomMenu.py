@@ -126,8 +126,6 @@ class CustomMenu( QtWidgets.QPushButton):
         #self.contextMenu.exec_(QCursor.pos())  # 在鼠标位置显示
         #添加二级菜单
 
-
-
     def showContextMenu(self, pos):
         '''''
         右键点击时调用的函数

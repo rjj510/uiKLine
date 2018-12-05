@@ -1289,7 +1289,7 @@ class KLineWidget(KeyWraper):
             
             self.clearSigData()
             self.loadData_listsig(pd.DataFrame.from_csv('data\dailyresult\RB9999.csv'))
-            self.BP_signal='close'            
+            self.BP_signal='close'        
             self.plotMark()   
             self.plot_after_runStrategy()    
             self.MA_SHORTOI.hide()    
