@@ -1,19 +1,19 @@
 [
   {
-    "SHORT_TERM_SHOW_LIMIT": false, 
-    "SHORT_TERM_SHOW_FIRST": true, 
-    "SIGNALSHOW": true, 
+    "SHORT_TERM_SHOW_FIRST": false, 
+    "GJRBUY_SHOW": false, 
+    "SIGNALSHOW": false, 
     "SHORT_TERM_SHOW": false, 
-    "ENDDAY": "20181108", 
-    "STARTDAY": "20170104", 
+    "ENDDAY": "20190108", 
+    "STARTDAY": "20170103", 
     "MA_SHORT_SHOW": true, 
     "MA_SHORT_DAY": 11, 
     "MA_LONG_DAY": 114, 
-    "ENDPOS": 2340, 
-    "StrategyName": "SHORTTERM_\u87ba\u7eb9_\u591a", 
+    "ENDPOS": 2381, 
     "MA_LONG_SHOW": true, 
-    "STARTPOS": 1891, 
-    "KLINESHOW": true, 
-    "SHORT_TERM_SHOW_ALL": false
+    "STARTPOS": 1890, 
+    "KLINESHOW": false, 
+    "StrategyName": "VOLATILITY_\u87ba\u7eb9_\u591a", 
+    "WAIBAORI_SHOW": false
   }
 ]

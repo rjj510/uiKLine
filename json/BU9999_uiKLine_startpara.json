@@ -1,7 +1,7 @@
 [
   {
     "SHORT_TERM_SHOW_FIRST": false, 
-    "SIGNALSHOW": false, 
+    "SIGNALSHOW": true, 
     "SHORT_TERM_SHOW": false, 
     "ENDDAY": "20181126", 
     "STARTDAY": "20170103", 

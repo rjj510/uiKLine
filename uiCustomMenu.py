@@ -88,6 +88,12 @@ class CustomMenu( QtWidgets.QPushButton):
         self.actionSHORTTERMF.triggered.connect(lambda: self.parent.initIndicator(u"SHORT TERM(First)"))
         self.actionSHORTTERMALL = self.swingMenu.addAction(u'SHORT TERM(All)')
         self.actionSHORTTERMALL.triggered.connect(lambda: self.parent.initIndicator(u"SHORT TERM(All)"))
+        self.actionWAIBAORI = self.swingMenu.addAction(u'外包日')
+        self.actionWAIBAORI.triggered.connect(lambda: self.parent.initIndicator(u"外包日"))
+        self.actionGJR_BUY = self.swingMenu.addAction(u'攻击日（买入）')
+        self.actionGJR_BUY.triggered.connect(lambda: self.parent.initIndicator(u"攻击日（买入）"))
+        self.actionGJR_SELL = self.swingMenu.addAction(u'攻击日（卖出）')
+        self.actionGJR_SELL.triggered.connect(lambda: self.parent.initIndicator(u"攻击日（卖出）"))
         
         ##设为起始日期
         self.actionOPI = self.amountMenu.addAction(u'设为起始日期')
@@ -115,7 +121,10 @@ class CustomMenu( QtWidgets.QPushButton):
         self.action5.triggered.connect(lambda: self.parent.initIndicator(u"VOLATILITY_螺纹_多"))        
         
         self.action6 = self.amountMenu.addAction(u'VOLATILITY_螺纹_空')
-        self.action6.triggered.connect(lambda: self.parent.initIndicator(u"VOLATILITY_螺纹_空"))        
+        self.action6.triggered.connect(lambda: self.parent.initIndicator(u"VOLATILITY_螺纹_空"))   
+        
+        self.action7 = self.amountMenu.addAction(u'外包日_螺纹_多')
+        self.action7.triggered.connect(lambda: self.parent.initIndicator(u"外包日_螺纹_多"))           
         
         self.action3 = self.pzxzMenu.addAction(u'RB9999')
         self.action3.triggered.connect(lambda: self.parent.initIndicator(u"RB9999"))    

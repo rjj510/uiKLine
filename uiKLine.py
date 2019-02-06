@@ -38,6 +38,7 @@ import runBacktesting_ShortTermStrategy_RB          as STRB
 import runBacktesting_ShortTermStrategy_Overhigh_RB as STOVRB
 import runBacktesting_RB                            as DMARB
 import runBacktesting_Volatility_RB                 as VRB
+import runBacktesting_WaiBaoDay_RB                  as WBDRB
 # 字符串转换
 #---------------------------------------------------------------------------------------
 try:
@@ -348,6 +349,9 @@ class KLineWidget(KeyWraper):
     KLINE_SHORT_TERM_LIST_ALL=[]
     KLINE_SHORT_TERM_LIST_FIRST=[]
     KLINE_SHORT_TERM_LIST_LIMIT=[]
+    KLINE_WAIBAORI=[]    
+    KLINE_GJR_BUY=[]    
+    KLINE_GJR_SELL=[]    
     listClose  = []
     listSig  = []
     listOpenInterest = []
@@ -355,6 +359,9 @@ class KLineWidget(KeyWraper):
     KLINE_SHORT_TERM_LIST_ALL_arrows = []
     KLINE_SHORT_TERM_LIST_FIRST_arrows = []
     KLINE_SHORT_TERM_LIST_LIMIT_arrows = []
+    KLINE_WAI_BAO_RI_arrows = []
+    KLINE_GJR_BUY_arrows = []
+    KLINE_GJR_SELL_arrows = []
     curves   = []
     KLINE_SHORT_TERM_LIST_ALL_curves = []
     KLINE_SHORT_TERM_LIST_FIRST_curves = []
@@ -372,6 +379,8 @@ class KLineWidget(KeyWraper):
     SHORT_TERM_SHOW_FIRST=False
     SHORT_TERM_SHOW_LIMIT=False
     SHORT_TERM_SHOW_ALL  =False
+    WAIBAORI_SHOW        =False
+    GJRBUY_SHOW          =False
     signal_show          =True     
 
 
@@ -776,8 +785,7 @@ class KLineWidget(KeyWraper):
                     last_y=self.datas[i]['low']     
                 elif self.KLINE_SHORT_TERM_LIST_ALL[i] ==2 :  
                     last_y=self.datas[i]['high']   
-                last_v=self.KLINE_SHORT_TERM_LIST_ALL[i]
-                
+                last_v=self.KLINE_SHORT_TERM_LIST_ALL[i]                
     #----------------------------------------------------------------------
     def plotIndex_FIRST (self):
         """画指标"""
@@ -795,7 +803,7 @@ class KLineWidget(KeyWraper):
                 self.pwKL.addItem(arrow)
                 self.KLINE_SHORT_TERM_LIST_FIRST_arrows.append(arrow)    
             if  self.KLINE_SHORT_TERM_LIST_FIRST[i] == 2:  
-                arrow = pg.ArrowItem(pos=(i, self.datas[i]['high']),size=7,tipAngle=55,tailLen=3,tailWidth=4 ,angle=-90, brush=(139, 58, 58),pen=({'color': "8B3A3A", 'width': 1}))
+                arrow = pg.ArrowItem(pos=(i, self.datas[i]['high']),size=7,tipAngle=55,tailLen=3,tailWidth=4 ,angle=-90, brush=(225, 255, 0),pen=({'color': "FFFF00", 'width': 1}))
                 self.pwKL.addItem(arrow)
                 self.KLINE_SHORT_TERM_LIST_FIRST_arrows.append(arrow)   
         last_x=-1  #上一个x
@@ -815,6 +823,48 @@ class KLineWidget(KeyWraper):
                 elif self.KLINE_SHORT_TERM_LIST_FIRST[i] ==2 :  
                     last_y=self.datas[i]['high']   
                 last_v=self.KLINE_SHORT_TERM_LIST_FIRST[i]
+    #----------------------------------------------------------------------
+    def plot_WAIBAORI(self):
+        """画外包日箭头"""
+        # 检查是否有数据
+        if len(self.KLINE_WAIBAORI)==0 :
+            self.refresh()            
+            return
+        for arrow in self.KLINE_WAI_BAO_RI_arrows:
+            self.pwKL.removeItem(arrow)    
+        for i in range(len(self.KLINE_WAIBAORI)):
+            if  self.KLINE_WAIBAORI[i] == 1:
+                arrow = pg.ArrowItem(pos=(i, self.datas[i]['low']-100), size=7,tipAngle=55,tailLen=3,tailWidth=4, angle=90, brush=(255, 255, 0),pen=({'color': "FF0000", 'width': 1}))   
+                self.pwKL.addItem(arrow)
+                self.KLINE_WAI_BAO_RI_arrows.append(arrow)     
+    #----------------------------------------------------------------------
+    def plot_GJR_BUY(self):
+        """画攻击日买入箭头"""
+        # 检查是否有数据
+        if len(self.KLINE_GJR_BUY)==0 :
+            self.refresh()            
+            return
+        for arrow in self.KLINE_GJR_BUY_arrows:
+            self.pwKL.removeItem(arrow)    
+        for i in range(len(self.KLINE_GJR_BUY)):
+            if  self.KLINE_GJR_BUY[i] == 1:
+                arrow = pg.ArrowItem(pos=(i, self.datas[i]['low']-50), size=7,tipAngle=55,tailLen=3,tailWidth=4, angle=90, brush=("B03060"),pen=({'color': "B03060", 'width': 1}))   
+                self.pwKL.addItem(arrow)
+                self.KLINE_GJR_BUY_arrows.append(arrow)    
+    #----------------------------------------------------------------------
+    def plot_GJR_SELL(self):
+        """画攻击日卖出箭头"""
+        # 检查是否有数据
+        if len(self.KLINE_GJR_SELL)==0 :
+            self.refresh()            
+            return
+        for arrow in self.KLINE_GJR_SELL_arrows:
+            self.pwKL.removeItem(arrow)    
+        for i in range(len(self.KLINE_GJR_SELL)):
+            if  self.KLINE_GJR_SELL[i] == 1:
+                arrow = pg.ArrowItem(pos=(i, self.datas[i]['high']+50), size=7,tipAngle=55,tailLen=3,tailWidth=4, angle=-90, brush=("C0FF3E"),pen=({'color': "C0FF3E", 'width': 1}))   
+                self.pwKL.addItem(arrow)
+                self.KLINE_GJR_SELL_arrows.append(arrow)    
     #----------------------------------------------------------------------
     def plot_after_runStrategy(self):
         """执行策略之后，根据显示状态重画其他指标"""
@@ -1316,6 +1366,74 @@ class KLineWidget(KeyWraper):
             self.plotAll()
             self.cur_jsonname=u'json\\uiKLine_startpara.json'
             self.reinit('RB9999','data\dailydata\RB9999.csv','data\dailyresult\RB9999.csv',self.cur_jsonname)
+        elif cmp(data, u'外包日')==0:
+            if len(self.KLINE_WAIBAORI) == 0 :
+                self.WAI_BAO_RI()
+                self.plot_WAIBAORI()  
+            if self.WAIBAORI_SHOW :
+                for arrow in self.KLINE_WAI_BAO_RI_arrows:
+                    arrow.show()  
+                self.WAIBAORI_SHOW =False
+            else:
+                for arrow in self.KLINE_WAI_BAO_RI_arrows:
+                    arrow.hide()  
+                self.WAIBAORI_SHOW =True       
+            pass
+        elif cmp(data, u'攻击日（买入）')==0:
+            if len(self.KLINE_GJR_BUY) == 0 :
+                self.GJR_BUY()
+                self.plot_GJR_BUY()
+            if self.GJRBUY_SHOW:
+                for arrow in self.KLINE_GJR_BUY_arrows:
+                    arrow.show()  
+                self.GJRBUY_SHOW =False
+            else:
+                for arrow in self.KLINE_GJR_BUY_arrows:
+                    arrow.hide()  
+                self.GJRBUY_SHOW =True    
+            pass
+        elif cmp(data, u'攻击日（卖出）')==0:
+            if len(self.KLINE_GJR_SELL) == 0 :
+                self.GJR_SELL()
+                self.plot_GJR_SELL()
+            if self.GJRSELL_SHOW:
+                for arrow in self.KLINE_GJR_SELL_arrows:
+                    arrow.show()  
+                self.GJRSELL_SHOW =False
+            else:
+                for arrow in self.KLINE_GJR_SELL_arrows:
+                    arrow.hide()  
+                self.GJRSELL_SHOW =True    
+            pass
+    
+        elif cmp(data, u'外包日_螺纹_多')==0:
+            reload(WBDRB)
+            engine=WBDRB.calculateDailyResult_init(True,False)            
+            initday = WBDRB.get_strategy_init_days(engine)  
+            if self.start_date[1] < initday:
+                initday = 0 
+            WBDRB.calculateDailyResult_to_CSV(engine,\
+                                            dt.datetime.strftime(pd.to_datetime(pd.to_datetime(self.datas[self.start_date[1]-initday]['datetime'],)),'%Y%m%d') ,\
+                                            self.start_date[1],\
+                                            dt.datetime.strftime(pd.to_datetime(pd.to_datetime(self.datas[self.end_date[1]]['datetime'],)),'%Y%m%d') ,\
+                                            self.end_date[1],\
+                                            os.path.abspath('.\data\dailyresult\RB9999.csv'))
+            
+            self.clearSigData()
+            self.loadData_listsig(pd.DataFrame.from_csv('data\dailyresult\RB9999.csv'))
+            self.BP_signal='close'        
+            self.plotMark()   
+            self.plot_after_runStrategy()    
+            self.MA_SHORTOI.hide()    
+            self.KLtitle.setText('RB9999'+'   '+'外包日_螺纹_多' ,size='10pt',color='FF0000')
+            klinesettings= self.load_json_file()
+            for setting in klinesettings:
+                setting['MA_SHORT_SHOW']= not(self.MA_SHORT_show)
+                setting['StrategyName']= '外包日_螺纹_多'
+            self.rewrite_json_file(klinesettings)   
+            self.MA_LONGOI.hide() 
+            self.MA_SHORTOI.hide()  
+    
     #----------------------------------------------------------------------
     #  界面回调相关
     #----------------------------------------------------------------------
@@ -1428,6 +1546,10 @@ class KLineWidget(KeyWraper):
             self.pwKL.removeItem(arrow)
         for arrow in self.KLINE_SHORT_TERM_LIST_LIMIT_arrows:
             self.pwKL.removeItem(arrow)
+        for arrow in self.KLINE_WAI_BAO_RI_arrows:
+            self.pwKL.removeItem(arrow)
+        for arrow in self.KLINE_GJR_BUY_arrows:
+            self.pwKL.removeItem(arrow)
         for curve in self.KLINE_SHORT_TERM_LIST_ALL_curves:
             self.pwKL.removeItem(curve)    
         for curve in self.KLINE_SHORT_TERM_LIST_FIRST_curves:
@@ -1437,6 +1559,8 @@ class KLineWidget(KeyWraper):
         self.KLINE_SHORT_TERM_LIST_ALL_arrows=[]
         self.KLINE_SHORT_TERM_LIST_FIRST_arrows=[]
         self.KLINE_SHORT_TERM_LIST_LIMIT_arrows=[]
+        self.KLINE_WAI_BAO_RI_arrows=[]
+        self.KLINE_GJR_BUY_arrows=[]
         self.KLINE_SHORT_TERM_LIST_ALL_curves=[]
         self.KLINE_SHORT_TERM_LIST_FIRST_curves=[]
         self.KLINE_SHORT_TERM_LIST_LIMIT_curves=[]
@@ -1584,6 +1708,9 @@ class KLineWidget(KeyWraper):
                     self.KLINE_show= setting[u'KLINESHOW']   
                     self.signal_show = setting[u'SIGNALSHOW']  
                     self.SHORT_TERM_SHOW_FIRST = setting[u'SHORT_TERM_SHOW_FIRST']  
+                    self.WAIBAORI_SHOW = setting[u'WAIBAORI_SHOW']  
+                    self.GJRBUY_SHOW = setting[u'GJRBUY_SHOW']  
+                    self.GJRSELL_SHOW = setting[u'GJRSELL_SHOW']  
                     self.StrategyName    =setting[u'StrategyName']
         except :
             f.close()
@@ -1597,6 +1724,9 @@ class KLineWidget(KeyWraper):
             self.MA_LONG_show = True    
             self.KLINE_show= True
             self.signal_show=True
+            self.WAIBAIRI_SHOW=True
+            self.GJRBUY_SHOW=True
+            self.GJRSELL_SHOW=True
             self.SHORT_TERM_SHOW_FIRST=True
             self.StrategyName    ='None'
             print "Error: josn没有找到文件或读取文件失败"        
@@ -1614,7 +1744,7 @@ class KLineWidget(KeyWraper):
                 f.close()      
         except:
             f.close()
-            josndata = [ { u'STARTDAY' : '20090327', u'STARTPOS' : 0,u'STARTDAY' : '20090330', u'STARTPOS' : 1, u'MA_LONG_DAY' : 92, u'MA_SHORT_DAY' : 22, u'MA_SHORT_SHOW' : True,u'MA_LONG_SHOW':True,u'KLINESHOW':True,u'SIGNALSHOW':True,u'SHORT_TERM_SHOW_FIRST':True,u'StrategyName':'None'} ]
+            josndata = [ { u'STARTDAY' : '20090327', u'STARTPOS' : 0,u'STARTDAY' : '20090330', u'STARTPOS' : 1, u'MA_LONG_DAY' : 92, u'MA_SHORT_DAY' : 22, u'MA_SHORT_SHOW' : True,u'MA_LONG_SHOW':True,u'KLINESHOW':True,u'SIGNALSHOW':True,u'SHORT_TERM_SHOW_FIRST':True,'WAIBAORI_SHOW':True,'GJRBUY_SHOW':True,'GJRSELL_SHOW':True,u'StrategyName':'None'} ]
             self.rewrite_json_file(josndata)
             with open(u'json\\uiKLine_startpara.json') as f:
                 initsettings= json.load(f)
@@ -1639,14 +1769,14 @@ class KLineWidget(KeyWraper):
     def load_All_Index_Setting(self):
         """把相关指标从json文件读取"""
         try:
-            with open(u'json\\uiKLine_first_index.json') as f:
+            with open(u'json\\uiKLine_all_index.json') as f:
                 index_settings= json.load(f)
                 f.close()      
         except:
             f.close()
             josndata = [ { u'SHORT_TERM_INDEX' : [0,0]} ]
             self.rewrite_Index_json_file(josndata)
-            with open(u'json\\uiKLine_first_index.json') as f:
+            with open(u'json\\uiKLine_all_index.json') as f:
                 initsettings= json.load(f)
             f.close()               
         return index_settings
@@ -1670,7 +1800,7 @@ class KLineWidget(KeyWraper):
         '''伪代码
         xb = np.array([0,5,6,7,4,5,1,2,8,1])  # 原始              三个值的第1个
         xm = np.array([5,6,7,4,5,1,2,8,1,0])  # 左移一位后面补0    三个值的第2个
-        xa = np.array([6,7,4,5,1,2,8,1,0,0]  # 左移二位后面补0    三个值的第3个
+        xa = np.array([6,7,4,5,1,2,8,1,0,0]   # 左移二位后面补0    三个值的第3个
         result =      [F,F,F,T,F,T,F,F,F,F]   # result = np.logical_and(xm<xb,xm<xa)
         result =      [F,F,F,F,T,F,T,F,F,F,F] # result=np.insert(result,0,False) 
         result =      [F,F,F,F,T,F,T,F,F,F]   # result=np.delete(result,result.shape[0]-1) 
@@ -1837,7 +1967,43 @@ class KLineWidget(KeyWraper):
         
         self.KLINE_SHORT_TERM_LOW      = [1 if i==True else 0 for i in self.KLINE_SHORT_TERM_LOW] #[1= 低点 0=普通点]
         self.KLINE_SHORT_TERM_HIGH     = [2 if i==True else 0 for i in self.KLINE_SHORT_TERM_HIGH]#[2= 高点 0=普通点]
-        self.KLINE_SHORT_TERM_LIST_ALL = (np.array(self.KLINE_SHORT_TERM_LOW) + np.array(self.KLINE_SHORT_TERM_HIGH)).tolist()            
+        self.KLINE_SHORT_TERM_LIST_ALL = (np.array(self.KLINE_SHORT_TERM_LOW) + np.array(self.KLINE_SHORT_TERM_HIGH)).tolist()    
+    #----------------------------------------------------------------------
+    def WAI_BAO_RI(self):
+        """获得外包日"""
+        #[1= 外包日 0= 不是外包日]
+        self.KLINE_WAIBAORI             = [1 if self.KLINE_LOW[i]   <  self.KLINE_LOW[i-1]    and \
+                                                self.KLINE_HIGH[i]  >  self.KLINE_HIGH[i-1]   and \
+                                                self.KLINE_CLOSE[i] <  self.KLINE_LOW[i-1]        \
+                                           else 0 for i in range(1,len(self.KLINE_CLOSE))] 
+        self.KLINE_WAIBAORI             = [0] + self.KLINE_WAIBAORI 
+    #----------------------------------------------------------------------
+    def GJR_BUY(self):
+        """获得攻击日买入"""
+        #[1= 攻击日 0= 不是攻击日]
+        self.KLINE_GJR_BUY              = [1 if self.KLINE_LOW[i]    <  self.KLINE_LOW[i-1]    and \
+                                                self.KLINE_LOW[i-1]  <  self.KLINE_LOW[i-1-1]  and \
+                                                self.KLINE_HIGH[i]   <  self.KLINE_HIGH[i-1]   and \
+                                                self.KLINE_HIGH[i-1] <  self.KLINE_HIGH[i-1-1] and \
+                                                self.KLINE_CLOSE[i]  <  self.KLINE_CLOSE[i-1]  and \
+                                                self.KLINE_CLOSE[i-1]<  self.KLINE_CLOSE[i-1-1]and \
+                                                self.KLINE_CLOSE[i]  <  self.KLINE_LOW[i-1]        \
+                                           else 0 for i in range(2,len(self.KLINE_CLOSE))] 
+        self.KLINE_GJR_BUY             = [0,0] + self.KLINE_GJR_BUY 
+    #----------------------------------------------------------------------
+    def GJR_SELL(self):
+        """获得攻击日卖出"""
+        #[1= 攻击日 0= 不是攻击日]
+        self.KLINE_GJR_SELL              =[1 if self.KLINE_LOW[i]    >  self.KLINE_LOW[i-1]    and \
+                                                self.KLINE_LOW[i-1]  >  self.KLINE_LOW[i-1-1]  and \
+                                                self.KLINE_HIGH[i]   >  self.KLINE_HIGH[i-1]   and \
+                                                self.KLINE_HIGH[i-1] >  self.KLINE_HIGH[i-1-1] and \
+                                                self.KLINE_CLOSE[i]  >  self.KLINE_CLOSE[i-1]  and \
+                                                self.KLINE_CLOSE[i-1]>  self.KLINE_CLOSE[i-1-1]and \
+                                                self.KLINE_CLOSE[i]  >  self.KLINE_HIGH[i-1]       \
+                                           else 0 for i in range(2,len(self.KLINE_CLOSE))] 
+        self.KLINE_GJR_SELL             = [0,0] + self.KLINE_GJR_SELL 
+        
 ########################################################################
 # 功能测试
 ########################################################################
@@ -1865,6 +2031,9 @@ if __name__ == '__main__':
     ui.initIndicator(u'SHORT TERM(First)')
     ui.initIndicator(u'SHORT TERM(All)')
     ui.initIndicator(u'SHORT TERM(Limit)')
+    ui.initIndicator(u'外包日')
+    ui.initIndicator(u'攻击日（买入）')
+    ui.initIndicator(u'攻击日（卖出）')
     if ui.signal_show == True :
         ui.initIndicator(u'信号显示')
     else:
