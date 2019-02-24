@@ -2,7 +2,7 @@
 git add <filename>
 git add *
 这是 git 基本工作流程的第一步；使用如下命令以实际提交改动：
-git commit -m "代码提交信息"
+git commit -m "策略2.1---DMARB,STRB,VRB"
 
 你的改动现在已经在本地仓库的 HEAD 中了。执行如下命令以将这些改动提交到远端仓库：
 git push origin master
