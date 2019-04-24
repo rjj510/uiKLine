@@ -38,6 +38,7 @@ import runBacktesting_ShortTermStrategy_RB          as STRB
 import runBacktesting_ShortTermStrategy_Overhigh_RB as STOVRB
 import runBacktesting_RB                            as DMARB
 import runBacktesting_Volatility_RB                 as VRB
+import runBacktesting_Volatility_RB_V1              as VRB1
 import runBacktesting_WaiBaoDay_RB                  as WBDRB
 # 字符串转换
 #---------------------------------------------------------------------------------------
@@ -1351,6 +1352,28 @@ class KLineWidget(KeyWraper):
             self.rewrite_json_file(klinesettings)   
             self.MA_LONGOI.hide() 
             self.MA_SHORTOI.hide()  
+        elif cmp(data, u'VOLATILITY_螺纹_V1')==0:
+            reload(VRB1)
+            engine=VRB1.calculateDailyResult_init(True)            
+            initday = VRB1.get_strategy_init_days(engine)  
+            if self.start_date[1] < initday:
+                initday = 0 
+            VRB1.calculateDailyResult_to_CSV(engine,dt.datetime.strftime(pd.to_datetime(pd.to_datetime(self.datas[self.start_date[1]-initday]['datetime'],)),'%Y%m%d') ,self.start_date[1],dt.datetime.strftime(pd.to_datetime(pd.to_datetime(self.datas[self.end_date[1]]['datetime'],)),'%Y%m%d') ,self.end_date[1],os.path.abspath('.\data\dailyresult\RB9999.csv'))
+            
+            self.clearSigData()
+            self.loadData_listsig(pd.DataFrame.from_csv('data\dailyresult\RB9999.csv'))
+            self.BP_signal='close'        
+            self.plotMark()   
+            self.plot_after_runStrategy()    
+            self.MA_SHORTOI.hide()    
+            self.KLtitle.setText('RB9999'+'   '+'VOLATILITY_螺纹_V1' ,size='10pt',color='FFA500')
+            klinesettings= self.load_json_file()
+            for setting in klinesettings:
+                setting['MA_SHORT_SHOW']= not(self.MA_SHORT_show)
+                setting['StrategyName']= 'VOLATILITY_螺纹_V1'
+            self.rewrite_json_file(klinesettings)   
+            self.MA_LONGOI.hide() 
+            self.MA_SHORTOI.hide()     
         elif cmp(data, u'BU9999')==0:
             self.clearSig()
             self.clearSigData()

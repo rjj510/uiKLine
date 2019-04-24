@@ -122,6 +122,9 @@ class CustomMenu( QtWidgets.QPushButton):
         
         self.action6 = self.amountMenu.addAction(u'VOLATILITY_螺纹_空')
         self.action6.triggered.connect(lambda: self.parent.initIndicator(u"VOLATILITY_螺纹_空"))   
+                
+        self.action9 = self.amountMenu.addAction(u'VOLATILITY_螺纹_V1')
+        self.action9.triggered.connect(lambda: self.parent.initIndicator(u"VOLATILITY_螺纹_V1"))           
         
         self.action7 = self.amountMenu.addAction(u'外包日_螺纹_多')
         self.action7.triggered.connect(lambda: self.parent.initIndicator(u"外包日_螺纹_多"))           
