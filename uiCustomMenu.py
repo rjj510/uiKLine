@@ -64,7 +64,7 @@ class CustomMenu( QtWidgets.QPushButton):
         self.trendMenu=self.contextMenu.addMenu(u"k线形态")
         self.swingMenu = self.contextMenu.addMenu(u"技术指标")
         self.amountMenu = self.contextMenu.addMenu(u"策略研究")
-        self.pzxzMenu = self.contextMenu.addMenu(u"品种选择")
+        self.pzxzMenu = self.contextMenu.addMenu(u"合约切换")
         # 添加二级菜单
 
         #趋势分析指标
@@ -94,6 +94,16 @@ class CustomMenu( QtWidgets.QPushButton):
         self.actionGJR_BUY.triggered.connect(lambda: self.parent.initIndicator(u"攻击日（买入）"))
         self.actionGJR_SELL = self.swingMenu.addAction(u'攻击日（卖出）')
         self.actionGJR_SELL.triggered.connect(lambda: self.parent.initIndicator(u"攻击日（卖出）"))
+        self.actionRB = self.pzxzMenu.addAction(u'RB9999')
+        self.actionRB.triggered.connect(lambda: self.parent.initIndicator(u"RB9999"))
+        self.actionCU = self.pzxzMenu.addAction(u'CU9999')
+        self.actionCU.triggered.connect(lambda: self.parent.initIndicator(u"CU9999"))
+        self.actionCF = self.pzxzMenu.addAction(u'CF9999')
+        self.actionCF.triggered.connect(lambda: self.parent.initIndicator(u"CF9999"))
+        self.actionC = self.pzxzMenu.addAction(u'C9999')
+        self.actionC.triggered.connect(lambda: self.parent.initIndicator(u"C9999"))
+        self.actionJ = self.pzxzMenu.addAction(u'J9999')
+        self.actionJ.triggered.connect(lambda: self.parent.initIndicator(u"J9999"))
         
         ##设为起始日期
         self.actionOPI = self.amountMenu.addAction(u'设为起始日期')
@@ -113,10 +123,7 @@ class CustomMenu( QtWidgets.QPushButton):
         
         self.action1 = self.amountMenu.addAction(u'SHORTTERM_螺纹_空')
         self.action1.triggered.connect(lambda: self.parent.initIndicator(u"SHORTTERM_螺纹_空"))    
-        
-        self.action2 = self.amountMenu.addAction(u'SHORTTERM_螺纹_多_加仓')
-        self.action2.triggered.connect(lambda: self.parent.initIndicator(u"SHORTTERM_螺纹_多_加仓"))    
-        
+                
         self.action5 = self.amountMenu.addAction(u'VOLATILITY_螺纹_多')
         self.action5.triggered.connect(lambda: self.parent.initIndicator(u"VOLATILITY_螺纹_多"))        
         
@@ -128,12 +135,7 @@ class CustomMenu( QtWidgets.QPushButton):
         
         self.action7 = self.amountMenu.addAction(u'外包日_螺纹_多')
         self.action7.triggered.connect(lambda: self.parent.initIndicator(u"外包日_螺纹_多"))           
-        
-        self.action3 = self.pzxzMenu.addAction(u'RB9999')
-        self.action3.triggered.connect(lambda: self.parent.initIndicator(u"RB9999"))    
-        
-        self.action4 = self.pzxzMenu.addAction(u'BU9999')
-        self.action4.triggered.connect(lambda: self.parent.initIndicator(u"BU9999"))            
+                
 
         #self.contextMenu.exec_(QCursor.pos())  # 在鼠标位置显示
         #添加二级菜单

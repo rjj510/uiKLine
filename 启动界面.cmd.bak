@@ -1,0 +1,3 @@
+TASKKILL  /F /T /IM python.exe
+python -u uiKLine.py
+pause

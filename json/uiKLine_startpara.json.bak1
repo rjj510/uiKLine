@@ -22,16 +22,16 @@
       0, 
       0
     ], 
-    "ENDDAY": "20190516", 
-    "ENDPOS": 2464, 
-    "StrategyName": "SHORTTERM_\u87ba\u7eb9_\u591a", 
+    "ENDDAY": "20190509", 
+    "ENDPOS": 2459, 
+    "StrategyName": "VOLATILITY_\u87ba\u7eb9_V1", 
     "SHORT_TERM_SHOW_FIRST": false, 
     "GJRBUY_SHOW": false, 
     "SHORT_TERM_SHOW": false, 
-    "STARTDAY": "20170104", 
+    "STARTDAY": "20170103", 
     "MA_SHORT_SHOW": false, 
     "HYNAME": "RB9999", 
-    "KLINESHOW": false, 
+    "KLINESHOW": true, 
     "HYSIZE": 10, 
     "MA_SHORT_DAY": 11, 
     "WAIBAORI_SHOW": false, 
@@ -63,6 +63,6 @@
       0, 
       0
     ], 
-    "STARTPOS": 1891
+    "STARTPOS": 1890
   }
 ]
