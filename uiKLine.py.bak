@@ -38,6 +38,8 @@ import runBacktesting_ShortTermStrategy_RB          as STRB
 import runBacktesting_ShortTermStrategy_Overhigh_RB as STOVRB
 import runBacktesting_RB                            as DMARB
 import runBacktesting_Volatility_RB                 as VRB
+import runBacktesting_Volatility_RB_V1              as VRB1
+import runBacktesting_WaiBaoDay_RB                  as WBDRB
 # 字符串转换
 #---------------------------------------------------------------------------------------
 try:
@@ -426,6 +428,8 @@ class KLineWidget(KeyWraper):
         self.cur_jsonname=u'json\\uiKLine_startpara.json'
         self.SP_signal='close'
         self.BP_signal='close'
+        self.dailyresult_path = ''
+        self.dailydata_path = ''     
         # 所有K线上信号图
         self.allColor = deque(['blue','green','yellow','white'])
         self.sigData  = {}
@@ -962,6 +966,12 @@ class KLineWidget(KeyWraper):
         self.plotOI(0,len(self.datas))                         # K线副图，持仓量
         self.refresh()
 
+    
+    #----------------------------------------------------------------------
+    def restart_program(self):
+        python = sys.executable
+        os.execl(python, python, * sys.argv)
+            
     #----------------------------------------------------------------------
     def refresh(self):
         """
@@ -1094,10 +1104,20 @@ class KLineWidget(KeyWraper):
                 setting['KLINESHOW']= not(self.KLINE_show)
             self.rewrite_json_file(klinesettings,self.cur_jsonname)
         elif cmp(data, u'MA SHORT') == 0 :
+            '''
             if len(self.MA_SHORT_real) == 0:             
                 self.MA_SHORT_real = ta.MA(np.array(self.KLINE_CLOSE), timeperiod=self.MA_SHORT_DAY, matype=0).tolist()
                 self.crosshair.ma_s_values = self.MA_SHORT_real 
                 self.plotMA_SHORT()
+            '''
+            if len(self.MA_SHORT_real) == 0:      
+                if self.HYNAME == 'RB9999':
+                    MA_SHORT_DAY= self.RB_PARALIST[13]  
+                elif self.HYNAME == 'J9999':
+                    MA_SHORT_DAY= self.J_PARALIST[13]
+                self.MA_SHORT_real = ta.MA(np.array(self.KLINE_CLOSE), timeperiod=MA_SHORT_DAY, matype=0).tolist()
+                self.crosshair.ma_s_values = self.MA_SHORT_real 
+                self.plotMA_SHORT()                                               
             if self.MA_SHORT_show :
                 self.MA_SHORTOI.hide() 
                 self.MA_SHORT_show =False
@@ -1109,10 +1129,24 @@ class KLineWidget(KeyWraper):
                 setting['MA_SHORT_SHOW']= not(self.MA_SHORT_show)
             self.rewrite_json_file(klinesettings,self.cur_jsonname)
         elif cmp(data, u'MA LONG') == 0 :
+            '''
             if len(self.MA_LONG_real) == 0:
                 self.MA_LONG_real = ta.MA(np.array(self.KLINE_CLOSE), timeperiod=self.MA_LONG_DAY, matype=0).tolist()
                 self.crosshair.ma_l_values = self.MA_LONG_real 
                 self.plotMA_LONG()
+            '''
+            if len(self.MA_LONG_real) == 0:
+                if self.HYNAME == 'RB9999':
+                    MA_LONG_DAY  = self.RB_PARALIST[13]
+                    MA_BEFORE_DAY= self.RB_PARALIST[12]
+                elif self.HYNAME == 'J9999':
+                    MA_LONG_DAY  = self.J_PARALIST[13]
+                    MA_BEFORE_DAY= self.J_PARALIST[12]
+                MA_LONG_real = ta.MA(np.array(self.KLINE_CLOSE), timeperiod=MA_LONG_DAY, matype=0).tolist()
+                data1 = pd.DataFrame({'a': MA_LONG_real}) 
+                self.MA_LONG_real = np.array(data1.shift(periods=MA_BEFORE_DAY,axis=0).a).tolist()  
+                self.crosshair.ma_l_values =self.MA_LONG_real              
+                self.plotMA_LONG()                               
             if self.MA_LONG_show :
                 self.MA_LONGOI.hide() 
                 self.MA_LONG_show =False
@@ -1143,13 +1177,13 @@ class KLineWidget(KeyWraper):
                 self.rewrite_json_file(klinesettings,self.cur_jsonname)
         elif cmp(data, u'MA_螺纹空_PLUS') == 0 :
             reload(DMARB)
-            engine  = DMARB.calculateDailyResult_init() 
+            engine  = DMARB.calculateDailyResult_init(self.HYCAPITAL,self.HYSIZE) 
             initday = DMARB.get_strategy_init_days(engine)  
             if self.start_date[1] < initday:
                 initday = 0 
-            DMARB.calculateDailyResult_to_CSV(engine,dt.datetime.strftime(pd.to_datetime(pd.to_datetime(self.datas[self.start_date[1]-initday]['datetime'],)),'%Y%m%d'),self.start_date[1],dt.datetime.strftime(pd.to_datetime(pd.to_datetime(self.datas[self.end_date[1]]['datetime'],)),'%Y%m%d'),self.end_date[1],os.path.abspath('.\data\dailyresult\RB9999.csv'))
+            DMARB.calculateDailyResult_to_CSV(engine,dt.datetime.strftime(pd.to_datetime(pd.to_datetime(self.datas[self.start_date[1]-initday]['datetime'],)),'%Y%m%d'),self.start_date[1],dt.datetime.strftime(pd.to_datetime(pd.to_datetime(self.datas[self.end_date[1]]['datetime'],)),'%Y%m%d'),self.end_date[1],os.path.abspath('.\\'+self.dailyresult_path),self.HYNAME) 
             self.clearSigData()
-            self.loadData_listsig(pd.DataFrame.from_csv('data\dailyresult\RB9999.csv'))
+            self.loadData_listsig(pd.DataFrame.from_csv(self.dailyresult_path))
             self.BP_signal='close'            
             self.plotMark()   
             self.plot_after_runStrategy()    
@@ -1168,7 +1202,7 @@ class KLineWidget(KeyWraper):
             self.MA_LONGOI.show() 
             self.MA_LONG_show =True  
                         
-            self.KLtitle.setText('RB9999'+'   '+'MA_螺纹空_PLUS' ,size='10pt',color='g')
+            self.KLtitle.setText(self.HYNAME+'   '+'MA_螺纹空_PLUS' ,size='10pt',color='g')
             klinesettings= self.load_json_file()
             for setting in klinesettings:
                 setting['MA_SHORT_SHOW']= not(self.MA_SHORT_show)
@@ -1232,14 +1266,14 @@ class KLineWidget(KeyWraper):
                 self.SHORT_TERM_SHOW_ALL =True              
         elif cmp(data, u'SHORTTERM_螺纹_多') == 0 :             
             reload(STRB)
-            engine=STRB.calculateDailyResult_init(True)            
+            engine=STRB.calculateDailyResult_init(True,self.HYCAPITAL,self.HYSIZE)            
             initday = STRB.get_strategy_init_days(engine)  
             if self.start_date[1] < initday:
                 initday = 0 
-            STRB.calculateDailyResult_to_CSV(engine,dt.datetime.strftime(pd.to_datetime(pd.to_datetime(self.datas[self.start_date[1]-initday]['datetime'],)),'%Y%m%d') ,self.start_date[1],dt.datetime.strftime(pd.to_datetime(pd.to_datetime(self.datas[self.end_date[1]]['datetime'],)),'%Y%m%d') ,self.end_date[1],os.path.abspath('.\data\dailyresult\RB9999.csv'))
+            STRB.calculateDailyResult_to_CSV(engine,dt.datetime.strftime(pd.to_datetime(pd.to_datetime(self.datas[self.start_date[1]-initday]['datetime'],)),'%Y%m%d') ,self.start_date[1],dt.datetime.strftime(pd.to_datetime(pd.to_datetime(self.datas[self.end_date[1]]['datetime'],)),'%Y%m%d') ,self.end_date[1],os.path.abspath('.\\'+self.dailyresult_path),self.HYNAME,self.HYSTARTDATE)
             
             self.clearSigData()
-            self.loadData_listsig(pd.DataFrame.from_csv('data\dailyresult\RB9999.csv'))
+            self.loadData_listsig(pd.DataFrame.from_csv(self.dailyresult_path))
             self.SP_signal='close'            
             self.plotMark()   
             self.plot_after_runStrategy()    
@@ -1249,7 +1283,7 @@ class KLineWidget(KeyWraper):
             self.plotMA_SHORT()
             self.MA_SHORTOI.show() 
             self.MA_SHORT_show =True     
-            self.KLtitle.setText('RB9999'+'   '+'SHORTTERM_螺纹_多' ,size='10pt',color='FF0000')
+            self.KLtitle.setText(self.HYNAME+'   '+'SHORTTERM_螺纹_多' ,size='10pt',color='FF0000')
             klinesettings= self.load_json_file()
             for setting in klinesettings:
                 setting['MA_SHORT_SHOW']= not(self.MA_SHORT_show)
@@ -1258,14 +1292,14 @@ class KLineWidget(KeyWraper):
     
         elif cmp(data, u'SHORTTERM_螺纹_空') == 0 :             
             reload(STRB)
-            engine=STRB.calculateDailyResult_init(False)            
+            engine=STRB.calculateDailyResult_init(False,self.HYCAPITAL,self.HYSIZE)            
             initday = STRB.get_strategy_init_days(engine)  
             if self.start_date[1] < initday:
                 initday = 0 
-            STRB.calculateDailyResult_to_CSV(engine,dt.datetime.strftime(pd.to_datetime(pd.to_datetime(self.datas[self.start_date[1]-initday]['datetime'],)),'%Y%m%d') ,self.start_date[1],dt.datetime.strftime(pd.to_datetime(pd.to_datetime(self.datas[self.end_date[1]]['datetime'],)),'%Y%m%d') ,self.end_date[1],os.path.abspath('.\data\dailyresult\RB9999.csv'))
+            STRB.calculateDailyResult_to_CSV(engine,dt.datetime.strftime(pd.to_datetime(pd.to_datetime(self.datas[self.start_date[1]-initday]['datetime'],)),'%Y%m%d') ,self.start_date[1],dt.datetime.strftime(pd.to_datetime(pd.to_datetime(self.datas[self.end_date[1]]['datetime'],)),'%Y%m%d') ,self.end_date[1],os.path.abspath('.\\'+self.dailyresult_path),self.HYNAME,self.HYSTARTDATE)
             
             self.clearSigData()
-            self.loadData_listsig(pd.DataFrame.from_csv('data\dailyresult\RB9999.csv'))
+            self.loadData_listsig(pd.DataFrame.from_csv(self.dailyresult_path))
             self.BP_signal='close'
             self.plotMark()   
             self.plot_after_runStrategy()    
@@ -1275,52 +1309,27 @@ class KLineWidget(KeyWraper):
             self.plotMA_SHORT()
             self.MA_SHORTOI.show() 
             self.MA_SHORT_show =True     
-            self.KLtitle.setText('RB9999'+'   '+'SHORTTERM_螺纹_空' ,size='10pt',color='00FF00')
+            self.KLtitle.setText(self.HYNAME+'   '+'SHORTTERM_螺纹_空' ,size='10pt',color='00FF00')
             klinesettings= self.load_json_file()
             for setting in klinesettings:
                 setting['MA_SHORT_SHOW']= not(self.MA_SHORT_show)
                 setting['StrategyName']= 'SHORTTERM_螺纹_空'
             self.rewrite_json_file(klinesettings)   
-        elif cmp(data, u'SHORTTERM_螺纹_多_加仓')==0:          
-            reload(STOVRB)
-            engine=STOVRB.calculateDailyResult_init(True)            
-            initday = STOVRB.get_strategy_init_days(engine)  
-            if self.start_date[1] < initday:
-                initday = 0 
-            STOVRB.calculateDailyResult_to_CSV(engine,dt.datetime.strftime(pd.to_datetime(pd.to_datetime(self.datas[self.start_date[1]-initday]['datetime'],)),'%Y%m%d') ,self.start_date[1],dt.datetime.strftime(pd.to_datetime(pd.to_datetime(self.datas[self.end_date[1]]['datetime'],)),'%Y%m%d') ,self.end_date[1],os.path.abspath('.\data\dailyresult\RB9999.csv'))
-            
-            self.clearSigData()
-            self.loadData_listsig(pd.DataFrame.from_csv('data\dailyresult\RB9999.csv'))
-            self.SP_signal='close'            
-            self.plotMark()   
-            self.plot_after_runStrategy()    
-            self.MA_SHORT_DAY  = STOVRB.get_strategy_E_LONG(engine)    
-            self.MA_SHORT_real = ta.MA(np.array(self.KLINE_CLOSE), timeperiod=self.MA_SHORT_DAY, matype=0).tolist()
-            self.crosshair.ma_s_values = self.MA_SHORT_real 
-            self.plotMA_SHORT()
-            self.MA_SHORTOI.show() 
-            self.MA_SHORT_show =True     
-            self.KLtitle.setText('RB9999'+'   '+'SHORTTERM_螺纹_多_加仓' ,size='10pt',color='FF0000')
-            klinesettings= self.load_json_file()
-            for setting in klinesettings:
-                setting['MA_SHORT_SHOW']= not(self.MA_SHORT_show)
-                setting['StrategyName']= 'SHORTTERM_螺纹_多_加仓'
-            self.rewrite_json_file(klinesettings)   
         elif cmp(data, u'VOLATILITY_螺纹_多')==0:
             reload(VRB)
-            engine=VRB.calculateDailyResult_init(True,True)            
+            engine=VRB.calculateDailyResult_init(True,True,self.HYCAPITAL,self.HYSIZE)            
             initday = VRB.get_strategy_init_days(engine)  
             if self.start_date[1] < initday:
                 initday = 0 
-            VRB.calculateDailyResult_to_CSV(engine,dt.datetime.strftime(pd.to_datetime(pd.to_datetime(self.datas[self.start_date[1]-initday]['datetime'],)),'%Y%m%d') ,self.start_date[1],dt.datetime.strftime(pd.to_datetime(pd.to_datetime(self.datas[self.end_date[1]]['datetime'],)),'%Y%m%d') ,self.end_date[1],os.path.abspath('.\data\dailyresult\RB9999.csv'))
+            VRB.calculateDailyResult_to_CSV(engine,dt.datetime.strftime(pd.to_datetime(pd.to_datetime(self.datas[self.start_date[1]-initday]['datetime'],)),'%Y%m%d') ,self.start_date[1],dt.datetime.strftime(pd.to_datetime(pd.to_datetime(self.datas[self.end_date[1]]['datetime'],)),'%Y%m%d') ,self.end_date[1],os.path.abspath('.\\'+self.dailyresult_path),self.HYNAME,self.HYSTARTDATE)
             
             self.clearSigData()
-            self.loadData_listsig(pd.DataFrame.from_csv('data\dailyresult\RB9999.csv'))
+            self.loadData_listsig(pd.DataFrame.from_csv(self.dailyresult_path))
             self.SP_signal='close'            
             self.plotMark()   
             self.plot_after_runStrategy()    
             self.MA_SHORTOI.hide()    
-            self.KLtitle.setText('RB9999'+'   '+'VOLATILITY_螺纹_多' ,size='10pt',color='FF0000')
+            self.KLtitle.setText(self.HYNAME+'   '+'VOLATILITY_螺纹_多' ,size='10pt',color='FF0000')
             klinesettings= self.load_json_file()
             for setting in klinesettings:
                 setting['MA_SHORT_SHOW']= not(self.MA_SHORT_show)
@@ -1330,19 +1339,19 @@ class KLineWidget(KeyWraper):
             self.MA_SHORTOI.hide()       
         elif cmp(data, u'VOLATILITY_螺纹_空')==0:
             reload(VRB)
-            engine=VRB.calculateDailyResult_init(True,False)            
+            engine=VRB.calculateDailyResult_init(True,False,self.HYCAPITAL,self.HYSIZE)            
             initday = VRB.get_strategy_init_days(engine)  
             if self.start_date[1] < initday:
                 initday = 0 
-            VRB.calculateDailyResult_to_CSV(engine,dt.datetime.strftime(pd.to_datetime(pd.to_datetime(self.datas[self.start_date[1]-initday]['datetime'],)),'%Y%m%d') ,self.start_date[1],dt.datetime.strftime(pd.to_datetime(pd.to_datetime(self.datas[self.end_date[1]]['datetime'],)),'%Y%m%d') ,self.end_date[1],os.path.abspath('.\data\dailyresult\RB9999.csv'))
+            VRB.calculateDailyResult_to_CSV(engine,dt.datetime.strftime(pd.to_datetime(pd.to_datetime(self.datas[self.start_date[1]-initday]['datetime'],)),'%Y%m%d') ,self.start_date[1],dt.datetime.strftime(pd.to_datetime(pd.to_datetime(self.datas[self.end_date[1]]['datetime'],)),'%Y%m%d') ,self.end_date[1],os.path.abspath('.\\'+self.dailyresult_path),self.HYNAME,self.HYSTARTDATE)
             
             self.clearSigData()
-            self.loadData_listsig(pd.DataFrame.from_csv('data\dailyresult\RB9999.csv'))
+            self.loadData_listsig(pd.DataFrame.from_csv(self.dailyresult_path))
             self.BP_signal='close'        
             self.plotMark()   
             self.plot_after_runStrategy()    
             self.MA_SHORTOI.hide()    
-            self.KLtitle.setText('RB9999'+'   '+'VOLATILITY_螺纹_空' ,size='10pt',color='00FF00')
+            self.KLtitle.setText(self.HYNAME+'   '+'VOLATILITY_螺纹_空' ,size='10pt',color='00FF00')
             klinesettings= self.load_json_file()
             for setting in klinesettings:
                 setting['MA_SHORT_SHOW']= not(self.MA_SHORT_show)
@@ -1350,21 +1359,35 @@ class KLineWidget(KeyWraper):
             self.rewrite_json_file(klinesettings)   
             self.MA_LONGOI.hide() 
             self.MA_SHORTOI.hide()  
-        elif cmp(data, u'BU9999')==0:
-            self.clearSig()
+        elif cmp(data, u'VOLATILITY_螺纹_V1')==0:
+            reload(VRB1)
+            #self.loadKLineSetting()
+            self.set_start_and_end_pos(pd.DataFrame.from_csv(self.dailydata_path))
+            PARALIST=[]
+            if self.HYNAME == 'RB9999':
+                PARALIST= self.RB_PARALIST  
+            elif self.HYNAME == 'J9999':
+                PARALIST= self.J_PARALIST  
+            
+            engine=VRB1.calculateDailyResult_init(True,self.HYCAPITAL,self.HYSIZE,PARALIST)            
+            initday = VRB1.get_strategy_init_days(engine)  
+            if self.start_date[1] < initday:
+                initday = 0 
+            VRB1.calculateDailyResult_to_CSV(engine,dt.datetime.strftime(pd.to_datetime(pd.to_datetime(self.datas[self.start_date[1]-initday]['datetime'],)),'%Y%m%d') ,self.start_date[1],dt.datetime.strftime(pd.to_datetime(pd.to_datetime(self.datas[self.end_date[1]]['datetime'],)),'%Y%m%d') ,self.end_date[1],os.path.abspath('.\\'+self.dailyresult_path),self.HYNAME,self.HYSTARTDATE)
             self.clearSigData()
-            self.clearData()
-            self.plotAll()
-            self.cur_jsonname=u'json\\BU9999_uiKLine_startpara.json'
-            self.reinit('BU9999','data\dailydata\BU9999.csv','data\dailyresult\BU9999.csv',self.cur_jsonname)
-        elif cmp(data, u'RB9999')==0:
-            self.clearSig()
-            self.clearSigData()
-            self.clearData()
-            self.clearIndexData()
-            self.plotAll()
-            self.cur_jsonname=u'json\\uiKLine_startpara.json'
-            self.reinit('RB9999','data\dailydata\RB9999.csv','data\dailyresult\RB9999.csv',self.cur_jsonname)
+            self.loadData_listsig(pd.DataFrame.from_csv(self.dailyresult_path))
+            self.BP_signal='close'        
+            self.plotMark()   
+            self.plot_after_runStrategy()    
+            self.MA_SHORTOI.hide()    
+            self.KLtitle.setText(self.HYNAME+'   '+'VOLATILITY_螺纹_V1' ,size='10pt',color='FFA500')
+            klinesettings= self.load_json_file()
+            for setting in klinesettings:
+                setting['MA_SHORT_SHOW']= not(self.MA_SHORT_show)
+                setting['StrategyName']= 'VOLATILITY_螺纹_V1'
+            self.rewrite_json_file(klinesettings)   
+            #self.MA_LONGOI.hide() 
+            #self.MA_SHORTOI.hide()     
         elif cmp(data, u'外包日')==0:
             if len(self.KLINE_WAIBAORI) == 0 :
                 self.WAI_BAO_RI()
@@ -1405,6 +1428,99 @@ class KLineWidget(KeyWraper):
                 self.GJRSELL_SHOW =True    
             pass
     
+        elif cmp(data, u'外包日_螺纹_多')==0:
+            reload(WBDRB)
+            engine=WBDRB.calculateDailyResult_init(True,False)            
+            initday = WBDRB.get_strategy_init_days(engine)  
+            if self.start_date[1] < initday:
+                initday = 0 
+            WBDRB.calculateDailyResult_to_CSV(engine,\
+                                            dt.datetime.strftime(pd.to_datetime(pd.to_datetime(self.datas[self.start_date[1]-initday]['datetime'],)),'%Y%m%d') ,\
+                                            self.start_date[1],\
+                                            dt.datetime.strftime(pd.to_datetime(pd.to_datetime(self.datas[self.end_date[1]]['datetime'],)),'%Y%m%d') ,\
+                                            self.end_date[1],\
+                                            os.path.abspath('.\\'+self.dailyresult_path),self.HYNAME)
+            
+            self.clearSigData()
+            self.loadData_listsig(pd.DataFrame.from_csv(self.dailyresult_path))
+            self.BP_signal='close'        
+            self.plotMark()   
+            self.plot_after_runStrategy()    
+            self.MA_SHORTOI.hide()    
+            self.KLtitle.setText(self.HYNAME+'   '+'外包日_螺纹_多' ,size='10pt',color='FF0000')
+            klinesettings= self.load_json_file()
+            for setting in klinesettings:
+                setting['MA_SHORT_SHOW']= not(self.MA_SHORT_show)
+                setting['StrategyName']= '外包日_螺纹_多'
+            self.rewrite_json_file(klinesettings)   
+            self.MA_LONGOI.hide() 
+            self.MA_SHORTOI.hide()  
+        elif cmp(data, u'RB9999')==0:
+            klinesettings= self.load_json_file()
+            for setting in klinesettings:
+                setting['HYNAME']= 'RB9999'
+                setting['HYSTARTDATE']= '20090327'
+                setting['HYCAPITAL']= 30000
+                setting['HYSIZE']= 10
+                setting[u'RB_PARALIST']=[1400,0.7,0.9,1,1,500,1050,0.3,0.9,1,1,1000,300,20,0,0,0,0,0,0]
+            self.rewrite_json_file(klinesettings)   
+            self.restart_program()
+        elif cmp(data, u'CU9999')==0:
+            klinesettings= self.load_json_file()
+            for setting in klinesettings:
+                setting['HYNAME']= 'CU9999'
+                setting['HYSTARTDATE']= '19960402'
+                setting['HYCAPITAL']= 200000
+                setting['HYSIZE']= 5
+                para1=int(1400*(setting['HYCAPITAL']/30000.0))
+                para2=int(500*(setting['HYCAPITAL']/30000.0))
+                para3=int(1050*(setting['HYCAPITAL']/30000.0))
+                para4=int(1000*(setting['HYCAPITAL']/30000.0))                
+                setting[u'PARALIST']=[para1,0.7,0.9,1,1,para2,para3,0.3,0.9,1,1,para4,30,3,0,0,0,0,0,0]               
+            self.rewrite_json_file(klinesettings)  
+            self.restart_program()
+        elif cmp(data, u'CF9999')==0:
+            klinesettings= self.load_json_file()
+            for setting in klinesettings:
+                setting['HYNAME']= 'CF9999'
+                setting['HYSTARTDATE']= '20040601'
+                setting['HYCAPITAL']= 57000
+                setting['HYSIZE']= 5
+                para1=int(1400*(setting['HYCAPITAL']/30000.0))
+                para2=int(500*(setting['HYCAPITAL']/30000.0))
+                para3=int(1050*(setting['HYCAPITAL']/30000.0))
+                para4=int(1000*(setting['HYCAPITAL']/30000.0))
+                setting[u'PARALIST']=[para1,0.7,0.9,1,1,para2,para3,0.3,0.9,1,1,para4,365,20,0,0,0,0,0,0]    
+            self.rewrite_json_file(klinesettings)  
+            self.restart_program()
+        elif cmp(data, u'C9999')==0:
+            klinesettings= self.load_json_file()
+            for setting in klinesettings:
+                setting['HYNAME']= 'C9999'
+                setting['HYSTARTDATE']= '20040922'
+                setting['HYCAPITAL']= 12000
+                setting['HYSIZE']= 10
+                para1=int(1400*(setting['HYCAPITAL']/30000.0))
+                para2=int(500*(setting['HYCAPITAL']/30000.0))
+                para3=int(1050*(setting['HYCAPITAL']/30000.0))
+                para4=int(1000*(setting['HYCAPITAL']/30000.0))
+                setting[u'PARALIST']=[para1,0.7,0.9,1,1,para2,para3,0.3,0.9,1,1,para4,365,20,0,0,0,0,0,0]     
+            self.rewrite_json_file(klinesettings)  
+            self.restart_program()
+        elif cmp(data, u'J9999')==0:
+            klinesettings= self.load_json_file()
+            for setting in klinesettings:
+                setting['HYNAME']= 'J9999'
+                setting['HYSTARTDATE']= '20110415'
+                setting['HYCAPITAL']= 190000
+                setting['HYSIZE']= 100
+                para1=int(1400*(setting['HYCAPITAL']/30000.0))
+                para2=int(500*(setting['HYCAPITAL']/30000.0))
+                para3=int(1050*(setting['HYCAPITAL']/30000.0))
+                para4=int(1000*(setting['HYCAPITAL']/30000.0))
+                setting[u'J_PARALIST']=[para1,0.7,0.9,1,1,para2,para3,0.3,0.9,1,1,para4,365,20,0,0,0,0,0,0]     
+            self.rewrite_json_file(klinesettings)  
+            self.restart_program()
     
     #----------------------------------------------------------------------
     #  界面回调相关
@@ -1609,6 +1725,7 @@ class KLineWidget(KeyWraper):
         # 绑定数据，更新横坐标映射，更新Y轴自适应函数，更新十字光标映射
         datas['time_int'] = np.array(range(len(datas.index)))
         
+        
         self.datas = datas[['open','close','low','high','volume','openInterest']].to_records()
         self.axisTime.xdict={}
         xdict = dict(enumerate(datas.index.tolist()))
@@ -1670,9 +1787,9 @@ class KLineWidget(KeyWraper):
                 self.start_date=[]
                 for setting in initsettings:
                     self.start_date.append(setting[u'STARTDAY'])
-                    self.start_date.append(setting[u'STARTPOS'])
+                    #self.start_date.append(setting[u'STARTPOS'])
                     self.end_date.append(setting[u'ENDDAY'])
-                    self.end_date.append(setting[u'ENDPOS'])
+                    #self.end_date.append(setting[u'ENDPOS'])
                     self.MA_LONG_DAY        = setting[u'MA_LONG_DAY']
                     self.MA_SHORT_DAY       = setting[u'MA_SHORT_DAY']
                     self.MA_SHORT_show= setting[u'MA_SHORT_SHOW']
@@ -1684,6 +1801,14 @@ class KLineWidget(KeyWraper):
                     self.GJRBUY_SHOW = setting[u'GJRBUY_SHOW']  
                     self.GJRSELL_SHOW = setting[u'GJRSELL_SHOW']  
                     self.StrategyName    =setting[u'StrategyName']
+                    self.HYNAME          =setting[u'HYNAME']
+                    self.HYSTARTDATE     =setting[u'HYSTARTDATE']
+                    self.HYCAPITAL       =setting[u'HYCAPITAL']
+                    self.HYSIZE       =setting[u'HYSIZE']
+                    self.RB_PARALIST=setting[u'RB_PARALIST']
+                    self.J_PARALIST=setting[u'J_PARALIST']
+                    self.dailyresult_path = "data\dailyresult\%s.csv" %(self.HYNAME)
+                    self.dailydata_path = "data\dailydata\%s.csv" %(self.HYNAME)
         except :
             f.close()
             self.start_date.append("20090327")
@@ -1701,7 +1826,36 @@ class KLineWidget(KeyWraper):
             self.GJRSELL_SHOW=True
             self.SHORT_TERM_SHOW_FIRST=True
             self.StrategyName    ='None'
+            self.HYNAME          ='RB9999'
+            self.HYSTARTDATE     ='00000000'
+            self.HYCAPITAL       =100000
+            self.HYSIZE          =10
+            self.HY_BK_A_LOSS_SP       =0
+            self.HY_BK_A_FLAOT_PROFIT_ALL       =0
+            self.HY_SK_A_LOSS_SP       =0
+            self.HY_SK_A_FLAOT_PROFIT_ALL       =0         
+            self.RB_PARALIST=[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
+            self.J_PARALIST=[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
             print "Error: josn没有找到文件或读取文件失败"        
+        
+    #----------------------------------------------------------------------
+    def set_start_and_end_pos(self,datas):
+        """根据开始与结束日期设置pos"""
+        
+        datas['time_int'] = np.array(range(len(datas.index)))
+        #print (datas[(datas.index=="20201111")]['time_int'])
+        #print (datas[(datas.index=="20190402")]['time_int'])
+        if len(datas[(datas.index==self.start_date[0])]['time_int']) > 0:
+            self.start_date.append(datas[(datas.index==self.start_date[0])]['time_int'][0])            
+        else:
+            self.start_date.append(0)
+            
+        if len(datas[(datas.index==self.end_date[0])]['time_int']) > 0:
+            self.end_date.append(datas[(datas.index==self.end_date[0])]['time_int'][0])
+        else:
+            self.end_date.append(len(datas.index)-1)
+        
+                  
         
     #----------------------------------------------------------------------
     def rewrite_json_file(self,json_data,jsonname= u'json\\uiKLine_startpara.json'):
@@ -1716,7 +1870,8 @@ class KLineWidget(KeyWraper):
                 f.close()      
         except:
             f.close()
-            josndata = [ { u'STARTDAY' : '20090327', u'STARTPOS' : 0,u'STARTDAY' : '20090330', u'STARTPOS' : 1, u'MA_LONG_DAY' : 92, u'MA_SHORT_DAY' : 22, u'MA_SHORT_SHOW' : True,u'MA_LONG_SHOW':True,u'KLINESHOW':True,u'SIGNALSHOW':True,u'SHORT_TERM_SHOW_FIRST':True,'WAIBAORI_SHOW':True,'GJRBUY_SHOW':True,'GJRSELL_SHOW':True,u'StrategyName':'None'} ]
+            josndata = [ { u'STARTDAY' : '20090327', u'STARTPOS' : 0,u'STARTDAY' : '20090330', u'STARTPOS' : 1, u'MA_LONG_DAY' : 92, u'MA_SHORT_DAY' : 22, u'MA_SHORT_SHOW' : True,u'MA_LONG_SHOW':True,u'KLINESHOW':True,u'SIGNALSHOW':True,u'SHORT_TERM_SHOW_FIRST':True,'WAIBAORI_SHOW':True,'GJRBUY_SHOW':True,'GJRSELL_SHOW':True,u'StrategyName':'None',u'StrategyName':'RB9999',u'HYSTARTDATE':'00000000',u'HYSTARTDATE':100000,u'HYSIZE':10,\
+                           u'RB_PARALIST':[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],u'J_PARALIST':[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]} ]                                            
             self.rewrite_json_file(josndata)
             with open(u'json\\uiKLine_startpara.json') as f:
                 initsettings= json.load(f)
@@ -1958,7 +2113,8 @@ class KLineWidget(KeyWraper):
                                                 self.KLINE_HIGH[i]   <  self.KLINE_HIGH[i-1]   and \
                                                 self.KLINE_HIGH[i-1] <  self.KLINE_HIGH[i-1-1] and \
                                                 self.KLINE_CLOSE[i]  <  self.KLINE_CLOSE[i-1]  and \
-                                                self.KLINE_CLOSE[i-1]<  self.KLINE_CLOSE[i-1-1]    \
+                                                self.KLINE_CLOSE[i-1]<  self.KLINE_CLOSE[i-1-1]and \
+                                                self.KLINE_CLOSE[i]  <  self.KLINE_LOW[i-1]        \
                                            else 0 for i in range(2,len(self.KLINE_CLOSE))] 
         self.KLINE_GJR_BUY             = [0,0] + self.KLINE_GJR_BUY 
     #----------------------------------------------------------------------
@@ -1970,9 +2126,10 @@ class KLineWidget(KeyWraper):
                                                 self.KLINE_HIGH[i]   >  self.KLINE_HIGH[i-1]   and \
                                                 self.KLINE_HIGH[i-1] >  self.KLINE_HIGH[i-1-1] and \
                                                 self.KLINE_CLOSE[i]  >  self.KLINE_CLOSE[i-1]  and \
-                                                self.KLINE_CLOSE[i-1]>  self.KLINE_CLOSE[i-1-1]    \
+                                                self.KLINE_CLOSE[i-1]>  self.KLINE_CLOSE[i-1-1]and \
+                                                self.KLINE_CLOSE[i]  >  self.KLINE_HIGH[i-1]       \
                                            else 0 for i in range(2,len(self.KLINE_CLOSE))] 
-        self.KLINE_GJR_SELL             = [0,0] + self.KLINE_GJR_SELL 
+        self.KLINE_GJR_SELL             = [0,0] + self.KLINE_GJR_SELL    
         
 ########################################################################
 # 功能测试
@@ -1990,9 +2147,10 @@ if __name__ == '__main__':
     ui = KLineWidget()
     ui.show()
     ui.loadKLineSetting()
-    ui.KLtitle.setText('RB9999'+'   '+ui.StrategyName ,size='10pt',color='FFFF00')
-    ui.loadData(pd.DataFrame.from_csv('data\dailydata\RB9999.csv'))
-    ui.loadData_listsig(pd.DataFrame.from_csv('data\dailyresult\RB9999.csv'))
+    ui.set_start_and_end_pos(pd.DataFrame.from_csv(ui.dailydata_path))
+    ui.KLtitle.setText(ui.HYNAME+'   '+ui.StrategyName ,size='10pt',color='FFFF00')
+    ui.loadData(pd.DataFrame.from_csv(ui.dailydata_path))
+    ui.loadData_listsig(pd.DataFrame.from_csv(ui.dailyresult_path))
     ui.refreshAll()
     # 初始化界面显示
     ui.initIndicator(u'MA SHORT')
