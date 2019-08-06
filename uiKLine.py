@@ -597,7 +597,7 @@ class KLineWidget(KeyWraper):
         """重画K线子图"""
         if self.initCompleted:
             self.candle.generatePicture(self.listBar[xmin:xmax],redraw)   # 画K线
-            self.KLINEOI_CLOSE.setData(np.array(self.KLINE_CLOSE))        #画收盘价曲线
+            self.KLINEOI_CLOSE.setData(np.array(self.KLINE_CLOSE))        # 画收盘价曲线
             self.plotMark()                                               # 显示开平仓信号位置
             
     #----------------------------------------------------------------------   
@@ -1373,17 +1373,26 @@ class KLineWidget(KeyWraper):
             initday = VRB1.get_strategy_init_days(engine)  
             if self.start_date[1] < initday:
                 initday = 0 
-            VRB1.calculateDailyResult_to_CSV(engine,dt.datetime.strftime(pd.to_datetime(pd.to_datetime(self.datas[self.start_date[1]-initday]['datetime'],)),'%Y%m%d') ,self.start_date[1],dt.datetime.strftime(pd.to_datetime(pd.to_datetime(self.datas[self.end_date[1]]['datetime'],)),'%Y%m%d') ,self.end_date[1],os.path.abspath('.\\'+self.dailyresult_path),self.HYNAME,self.HYSTARTDATE)
+            VRB1.calculateDailyResult_to_CSV(engine,\
+                                             dt.datetime.strftime(pd.to_datetime(pd.to_datetime(self.datas[self.start_date[1]]['datetime'],)),'%Y%m%d') ,\
+                                             self.start_date[1],\
+                                             dt.datetime.strftime(pd.to_datetime(pd.to_datetime(self.datas[self.end_date[1]]['datetime'],)),'%Y%m%d') ,\
+                                             self.end_date[1],\
+                                             os.path.abspath('.\\'+self.dailyresult_path),\
+                                             self.HYNAME,\
+                                             self.HYSTARTDATE)
             self.clearSigData()
             self.loadData_listsig(pd.DataFrame.from_csv(self.dailyresult_path))
             self.BP_signal='close'        
             self.plotMark()   
             self.plot_after_runStrategy()    
-            self.MA_SHORTOI.hide()    
+            self.MA_SHORTOI.show()    
+            self.MA_LONGOI.show()  
             self.KLtitle.setText(self.HYNAME+'   '+'VOLATILITY_螺纹_V1' ,size='10pt',color='FFA500')
             klinesettings= self.load_json_file()
             for setting in klinesettings:
                 setting['MA_SHORT_SHOW']= not(self.MA_SHORT_show)
+                setting['MA_LONG_SHOW']= not(self.MA_LONG_show)
                 setting['StrategyName']= 'VOLATILITY_螺纹_V1'
             self.rewrite_json_file(klinesettings)   
             #self.MA_LONGOI.hide() 
