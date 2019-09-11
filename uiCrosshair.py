@@ -210,8 +210,8 @@ class Crosshair(QtCore.QObject):
                                 <span style="color: white;  font-size: 12px;">成交价</span><br>\
                                 <span style="color: yellow; font-size: 12px;">(价) %d</span><br>\
                                 <span style="color: white;  font-size: 12px;">指标</span><br>\
-                                <span style="color: yellow; font-size: 12px;">(MAS) %.0f</span><br>\
-                                <span style="color: yellow; font-size: 12px;">(MAL) %.0f</span><br>\
+                                <span style="color: yellow; font-size: 12px;">(NOW) %.0f</span><br>\
+                                <span style="color: yellow; font-size: 12px;">(BEF) %.0f</span><br>\
                             </div>'\
                                 % (dateText,cOpen,openPrice,cHigh,highPrice,\
                                     cLow,lowPrice,cClose,closePrice,tradePrice,MA_S,MA_L))    

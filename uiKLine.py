@@ -11,6 +11,7 @@ import os
 from functools import partial
 from collections import deque
 
+
 from qtpy.QtGui import *
 from qtpy.QtCore import *
 from qtpy.QtWidgets import *
@@ -244,6 +245,8 @@ class CandlestickItem(pg.GraphicsObject):
         self.high     = 1
         self.picture  = QtGui.QPicture()
         self.pictures = []
+        self.gPen     = pg.mkPen(color=(1, 255, 7, 255), width=w*2)
+        self.gBrush   = pg.mkBrush((1, 255, 7, 255))
         self.bPen     = pg.mkPen(color=(0, 240, 240, 255), width=w*2)
         self.bBrush   = pg.mkBrush((0, 240, 240, 255))
         self.rPen     = pg.mkPen(color=(255, 60, 60, 255), width=w*2)
@@ -328,7 +331,120 @@ class CandlestickItem(pg.GraphicsObject):
         pass
         
         
+# 成交量图形对象
+########################################################################
+class CandlestickItem_vol(pg.GraphicsObject):
+    """K线图形对象"""
 
+    # 初始化
+    #----------------------------------------------------------------------
+    def __init__(self, data):
+        """初始化"""
+        pg.GraphicsObject.__init__(self)
+        # 数据格式: [ (time, open, close, low, high),...]
+        self.data = data
+        # 只重画部分图形，大大提高界面更新速度
+        self.rect = None
+        self.picture = None
+        self.setFlag(self.ItemUsesExtendedStyleOption)
+        # 画笔和画刷
+        w = 0.4
+        self.offset   = 0
+        self.low      = 0
+        self.high     = 1
+        self.picture  = QtGui.QPicture()
+        self.pictures = []
+        self.bPen     = pg.mkPen(color=(1, 255, 7, 255), width=w*2)
+        self.bBrush   = pg.mkBrush((1, 240, 7, 255))
+        self.rPen     = pg.mkPen(color=(255, 60, 60, 255), width=w*2)
+        self.rBrush   = pg.mkBrush((255, 60, 60, 255))
+        self.rBrush.setStyle(Qt.NoBrush)
+        self.Before_Close =[]
+        self.Now_Close    =[]
+        # 刷新K线
+        self.generatePicture(self.data)          
+
+
+    # 画K线
+    #----------------------------------------------------------------------
+    def generatePicture(self,data=None,redraw=False):
+        """重新生成图形对象"""
+        # 重画或者只更新最后一个K线
+        if redraw:
+            self.pictures = []
+        elif self.pictures:
+            self.pictures.pop()
+        w = 0.4
+        bPen   = self.bPen
+        bBrush = self.bBrush
+        rPen   = self.rPen
+        rBrush = self.rBrush
+        self.low,self.high = (np.min(data['low']),np.max(data['high'])) if len(data)>0 else (0,1)
+        npic = len(self.pictures)
+        for (t, open0, close0, low0, high0) in data:
+            if t >= npic:
+                picture = QtGui.QPicture()
+                p = QtGui.QPainter(picture)
+                # 下跌蓝色（实心）, 上涨红色（空心）
+                pen,brush,pmin,pmax = (bPen,bBrush,close0,open0)\
+                    if open0 > close0 else (rPen,rBrush,open0,close0)
+                
+                if len(self.Now_Close)>0:
+                    pen,brush,pmin,pmax = (bPen,bBrush,close0,open0) \
+                        if self.Now_Close[t]  < self.Before_Close[t] else (rPen,rBrush,open0,close0)
+
+                
+                p.setPen(pen)  
+                p.setBrush(brush)
+                # 画K线方块和上下影线
+                if open0 == close0:
+                    p.drawLine(QtCore.QPointF(t-w,open0), QtCore.QPointF(t+w, close0))
+                else:
+                    p.drawRect(QtCore.QRectF(t-w, open0, w*2, close0-open0))
+                if pmin  > low0:
+                    p.drawLine(QtCore.QPointF(t,low0), QtCore.QPointF(t, pmin))
+                if high0 > pmax:
+                    p.drawLine(QtCore.QPointF(t,pmax), QtCore.QPointF(t, high0))
+                p.end()
+                self.pictures.append(picture)
+
+    # 手动重画
+    #----------------------------------------------------------------------
+    def update(self):
+        if not self.scene() is None:
+            self.scene().update()
+
+    # 自动重画
+    #----------------------------------------------------------------------
+    def paint(self, painter, opt, w):
+        rect = opt.exposedRect
+        xmin,xmax = (max(0,int(rect.left())),min(int(len(self.pictures)),int(rect.right())))
+        if not self.rect == (rect.left(),rect.right()) or self.picture is None:
+            self.rect = (rect.left(),rect.right())
+            self.picture = self.createPic(xmin,xmax)
+            self.picture.play(painter)
+        elif not self.picture is None:
+            self.picture.play(painter)
+
+    # 缓存图片
+    #----------------------------------------------------------------------
+    def createPic(self,xmin,xmax):
+        picture = QPicture()
+        p = QPainter(picture)
+        [pic.play(p) for pic in self.pictures[xmin:xmax]]
+        p.end()
+        return picture
+
+    # 定义边界
+    #----------------------------------------------------------------------
+    def boundingRect(self):
+        return QtCore.QRectF(0,self.low,len(self.pictures),(self.high-self.low))
+    
+    #----------------------------------------------------------------------
+    def hide(self):
+        self.parent.hide()
+        pass
+    
 ########################################################################
 class KLineWidget(KeyWraper):
     """用于显示价格走势图"""
@@ -503,7 +619,7 @@ class KLineWidget(KeyWraper):
     def initplotVol(self):
         """初始化成交量子图"""
         self.pwVol  = self.makePI('_'.join([self.windowId,'PlotVOL']))
-        self.volume = CandlestickItem(self.listVol)
+        self.volume = CandlestickItem_vol(self.listVol)
         self.pwVol.addItem(self.volume)
         
         
@@ -526,7 +642,6 @@ class KLineWidget(KeyWraper):
         self.pwKL.addItem(self.KLINEOI_CLOSE)
         self.KLINEOI_CLOSE.hide()
         
-        
               
         self.MA_SHORTOI = pg.PlotCurveItem(pen=({'color': "r", 'width': 1})) 
         self.pwKL.addItem(self.MA_SHORTOI)
@@ -535,7 +650,8 @@ class KLineWidget(KeyWraper):
         
         self.MA_LONGOI = pg.PlotCurveItem(pen=({'color': "r", 'width': 1,'dash':[3, 3, 3, 3]})) 
         self.pwKL.addItem(self.MA_LONGOI)
-        self.MA_LONGOI.hide()                
+        self.MA_LONGOI.hide()      
+                
                
         self.start_date_Line     = pg.InfiniteLine(angle=90, movable=False,pen=({'color': [255, 255, 255, 100], 'width': 0.5})) 
         self.pwKL.addItem(self.start_date_Line)
@@ -589,7 +705,7 @@ class KLineWidget(KeyWraper):
     #----------------------------------------------------------------------
     def plotVol(self,redraw=False,xmin=0,xmax=-1):
         """重画成交量子图"""
-        if self.initCompleted:
+        if self.initCompleted:  
             self.volume.generatePicture(self.listVol[xmin:xmax],redraw)   # 画成交量子图
 
     #----------------------------------------------------------------------
@@ -598,8 +714,7 @@ class KLineWidget(KeyWraper):
         if self.initCompleted:
             self.candle.generatePicture(self.listBar[xmin:xmax],redraw)   # 画K线
             self.KLINEOI_CLOSE.setData(np.array(self.KLINE_CLOSE))        # 画收盘价曲线
-            self.plotMark()                                               # 显示开平仓信号位置
-            
+            self.plotMark()                                               # 显示开平仓信号位置            
     #----------------------------------------------------------------------   
     def plotMA_SHORT(self):
         """重画MA_SHORT """
@@ -1117,6 +1232,7 @@ class KLineWidget(KeyWraper):
                     MA_SHORT_DAY= self.J_PARALIST[13]
                 self.MA_SHORT_real = ta.MA(np.array(self.KLINE_CLOSE), timeperiod=MA_SHORT_DAY, matype=0).tolist()
                 self.crosshair.ma_s_values = self.MA_SHORT_real 
+                self.volume.Now_Close = self.MA_SHORT_real 
                 self.plotMA_SHORT()                                               
             if self.MA_SHORT_show :
                 self.MA_SHORTOI.hide() 
@@ -1145,7 +1261,8 @@ class KLineWidget(KeyWraper):
                 MA_LONG_real = ta.MA(np.array(self.KLINE_CLOSE), timeperiod=MA_LONG_DAY, matype=0).tolist()
                 data1 = pd.DataFrame({'a': MA_LONG_real}) 
                 self.MA_LONG_real = np.array(data1.shift(periods=MA_BEFORE_DAY,axis=0).a).tolist()  
-                self.crosshair.ma_l_values =self.MA_LONG_real              
+                self.crosshair.ma_l_values =self.MA_LONG_real   
+                self.volume.Before_Close = self.MA_LONG_real            
                 self.plotMA_LONG()                               
             if self.MA_LONG_show :
                 self.MA_LONGOI.hide() 
@@ -1787,6 +1904,17 @@ class KLineWidget(KeyWraper):
             self.updateAll()
         self.crosshair.signal.emit((None,None))
     #----------------------------------------------------------------------
+    def refreshVol(self, redraw=True, update=False):
+        """
+        更新所有界面
+        """
+        # 调用画图
+        self.index = len(self.datas)
+        self.plotVol(redraw,0,len(self.datas))
+        if not update:
+            self.updateAll()
+        self.crosshair.signal.emit((None,None))
+    #----------------------------------------------------------------------
     def loadKLineSetting(self,jsonname=u'json\\uiKLine_startpara.json'):
         """"""
         try:
@@ -2164,6 +2292,7 @@ if __name__ == '__main__':
     # 初始化界面显示
     ui.initIndicator(u'MA SHORT')
     ui.initIndicator(u'MA LONG')
+    ui.refreshVol()
     ui.initIndicator(u'KLINE')
     ui.initIndicator(u'SHORT TERM(First)')
     ui.initIndicator(u'SHORT TERM(All)')
@@ -2175,4 +2304,5 @@ if __name__ == '__main__':
         ui.initIndicator(u'信号显示')
     else:
         ui.initIndicator(u'信号隐藏')
+        
     app.exec_()
