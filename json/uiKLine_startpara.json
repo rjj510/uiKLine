@@ -22,13 +22,13 @@
       0, 
       0
     ], 
-    "ENDDAY": "20200207", 
-    "ENDPOS": 2641, 
+    "ENDDAY": "20200706", 
+    "ENDPOS": 2741, 
     "StrategyName": "VOLATILITY_\u87ba\u7eb9_V1", 
     "SHORT_TERM_SHOW_FIRST": false, 
     "GJRBUY_SHOW": false, 
     "SHORT_TERM_SHOW": false, 
-    "STARTDAY": "20191008", 
+    "STARTDAY": "20191226", 
     "MA_SHORT_SHOW": false, 
     "HYNAME": "RB9999", 
     "KLINESHOW": false, 
@@ -63,6 +63,6 @@
       0, 
       0
     ], 
-    "STARTPOS": 2560
+    "STARTPOS": 2617
   }
 ]

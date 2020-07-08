@@ -1,20 +1,20 @@
 [
   {
     "RB_PARALIST": [
-      1400, 
+      1200, 
+      0.4, 
+      0.8, 
+      2, 
+      1, 
+      700, 
+      500, 
       0.7, 
-      0.9, 
-      1, 
-      1, 
-      600, 
-      900, 
-      0.3, 
-      0.9, 
-      4, 
+      0.8, 
       3, 
+      1, 
       1000, 
       380, 
-      16, 
+      13, 
       0, 
       0, 
       0, 
@@ -22,13 +22,13 @@
       0, 
       0
     ], 
-    "ENDDAY": "20191231", 
-    "ENDPOS": 2620, 
+    "ENDDAY": "20200402", 
+    "ENDPOS": 2680, 
     "StrategyName": "VOLATILITY_\u87ba\u7eb9_V1", 
     "SHORT_TERM_SHOW_FIRST": false, 
     "GJRBUY_SHOW": false, 
     "SHORT_TERM_SHOW": false, 
-    "STARTDAY": "20180102", 
+    "STARTDAY": "20191226", 
     "MA_SHORT_SHOW": false, 
     "HYNAME": "RB9999", 
     "KLINESHOW": false, 
@@ -63,6 +63,6 @@
       0, 
       0
     ], 
-    "STARTPOS": 2134
+    "STARTPOS": 2617
   }
 ]
